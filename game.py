@@ -128,6 +128,8 @@ class Performer:
     promotion_level: int = 0
     offers_striptease: bool = False
     dancer_strip_routine: bool = False
+    offers_private_lounge: bool = False
+    after_hours_exclusive: bool = False
     
     def train(self):
         """Train the performer to increase skill"""
@@ -189,6 +191,34 @@ class Performer:
                 notes.append(f"Signature striping wowed the crowd for +${stripe_bonus}.")
             else:
                 notes.append("Not enough energy for the striping showcase.")
+
+        if self.offers_private_lounge:
+            if self.energy >= 2:
+                self.energy = max(0, self.energy - 2)
+                lounge_base = base_income + total_bonus
+                lounge_bonus = max(160, int(lounge_base * 0.35))
+                total_bonus += lounge_bonus
+                ethics_delta -= 4
+                reputation_delta += 1
+                notes.append(
+                    f"Private lounge experience brought in an extra ${lounge_bonus}."
+                )
+            else:
+                notes.append("Too drained to host the private lounge experience.")
+
+        if self.after_hours_exclusive:
+            if self.energy >= 2:
+                self.energy = max(0, self.energy - 2)
+                exclusive_base = base_income + total_bonus
+                exclusive_bonus = max(240, int(exclusive_base * 0.45))
+                total_bonus += exclusive_bonus
+                ethics_delta -= 5
+                reputation_delta += 2
+                notes.append(
+                    f"After-hours exclusive captivated VIPs for +${exclusive_bonus}."
+                )
+            else:
+                notes.append("No stamina left for the after-hours exclusive offering.")
 
         return total_bonus, ethics_delta, reputation_delta, notes
 
@@ -698,6 +728,10 @@ class ClubManager:
             for record in save_data.get('performers', []):
                 performer_dict = _deserialize_performer_dict(record)
                 performer_dict.setdefault('promotion_level', 0)
+                performer_dict.setdefault('offers_striptease', False)
+                performer_dict.setdefault('dancer_strip_routine', False)
+                performer_dict.setdefault('offers_private_lounge', False)
+                performer_dict.setdefault('after_hours_exclusive', False)
                 restored_performers.append(performer_dict)
             self.state.performers = restored_performers
             self.state.upgrades = save_data.get('upgrades', {})
@@ -856,16 +890,35 @@ class ClubManager:
             print("2. Let rest (+3 energy)")
             print("3. Talk (improve relationship)")
             print("4. View detailed profile")
+
+            strip_option = "5"
             strip_status = "ON" if perf.offers_striptease else "OFF"
-            print(f"5. Toggle striptease bookings [{strip_status}]")
+            print(f"{strip_option}. Toggle striptease bookings [{strip_status}]")
+
+            next_option = 6
+            stripe_option: Optional[str] = None
             if perf.performer_type == PerformerType.DANCER:
+                stripe_option = str(next_option)
                 stripe_status = "ON" if perf.dancer_strip_routine else "OFF"
-                print(f"6. Toggle signature striping [{stripe_status}]")
-                print("7. Fire performer")
-                print("8. Back")
-            else:
-                print("6. Fire performer")
-                print("7. Back")
+                print(f"{stripe_option}. Toggle signature striping [{stripe_status}]")
+                next_option += 1
+
+            private_option = str(next_option)
+            private_status = "ON" if perf.offers_private_lounge else "OFF"
+            print(f"{private_option}. Toggle private lounge experiences [{private_status}]")
+            next_option += 1
+
+            after_hours_option = str(next_option)
+            after_hours_status = "ON" if perf.after_hours_exclusive else "OFF"
+            print(f"{after_hours_option}. Toggle after-hours exclusives [{after_hours_status}]")
+            next_option += 1
+
+            fire_option = str(next_option)
+            print(f"{fire_option}. Fire performer")
+            next_option += 1
+
+            back_option = str(next_option)
+            print(f"{back_option}. Back")
             
             action = input("\nChoose action: ").strip()
             
@@ -933,7 +986,7 @@ class ClubManager:
                 print(f"{'='*60}")
                 input("\nPress Enter to continue...")
             
-            elif action == '5':
+            elif action == strip_option:
                 current_rel = self.state.relationships.get(perf.name, 5)
                 if not perf.offers_striptease:
                     if current_rel < 6 or perf.loyalty < 6:
@@ -946,9 +999,11 @@ class ClubManager:
                 else:
                     perf.offers_striptease = False
                     perf.dancer_strip_routine = False
+                    perf.offers_private_lounge = False
+                    perf.after_hours_exclusive = False
                     print(f"\n✓ {perf.name} retires the striptease routine for now.")
 
-            elif perf.performer_type == PerformerType.DANCER and action == '6':
+            elif stripe_option and action == stripe_option:
                 if not perf.offers_striptease:
                     print("\n✗ Enable striptease bookings first before planning striping effects.")
                     continue
@@ -961,9 +1016,42 @@ class ClubManager:
                     perf.dancer_strip_routine = False
                     print(f"\n✓ {perf.name} shelves the striping showcase for now.")
 
-            elif (perf.performer_type == PerformerType.DANCER and action == '7') or (
-                perf.performer_type != PerformerType.DANCER and action == '6'
-            ):
+            elif action == private_option:
+                current_rel = self.state.relationships.get(perf.name, 5)
+                if not perf.offers_striptease:
+                    print("\n✗ Offer striptease bookings before introducing private lounge sessions.")
+                    continue
+                if not perf.offers_private_lounge:
+                    if current_rel < 7 or perf.loyalty < 7:
+                        print("\n✗ Build more trust before arranging private lounge experiences.")
+                        continue
+                    perf.offers_private_lounge = True
+                    self.state.ethics_score = max(0, self.state.ethics_score - 3)
+                    self.state.reputation = min(100, self.state.reputation + 1)
+                    print(f"\n✓ {perf.name} now hosts intimate private lounge sessions for select patrons.")
+                else:
+                    perf.offers_private_lounge = False
+                    perf.after_hours_exclusive = False
+                    print(f"\n✓ {perf.name} steps back from private lounge work.")
+
+            elif action == after_hours_option:
+                current_rel = self.state.relationships.get(perf.name, 5)
+                if not perf.offers_private_lounge:
+                    print("\n✗ Enable private lounge experiences before arranging after-hours exclusives.")
+                    continue
+                if not perf.after_hours_exclusive:
+                    if current_rel < 8 or perf.loyalty < 8:
+                        print("\n✗ They need the highest confidence in you before committing to that offering.")
+                        continue
+                    perf.after_hours_exclusive = True
+                    self.state.ethics_score = max(0, self.state.ethics_score - 4)
+                    self.state.reputation = min(100, self.state.reputation + 2)
+                    print(f"\n✓ {perf.name} agrees to limited after-hours exclusives for VIP clients.")
+                else:
+                    perf.after_hours_exclusive = False
+                    print(f"\n✓ {perf.name} sticks to the standard sets and winds down earlier.")
+
+            elif action == fire_option:
                 confirm = input(f"\nAre you sure you want to fire {perf.name}? (y/n): ").strip().lower()
                 if confirm == 'y':
                     self.state.performers.pop(idx)
@@ -972,9 +1060,7 @@ class ClubManager:
                     self.state.ethics_score = max(0, self.state.ethics_score - 5)
                     return
             
-            elif (perf.performer_type == PerformerType.DANCER and action == '8') or (
-                perf.performer_type != PerformerType.DANCER and action == '7'
-            ):
+            elif action == back_option:
                 # Save changes back
                 self.state.performers[idx] = asdict(perf)
                 return
@@ -995,6 +1081,8 @@ class ClubManager:
         
         total_income = 0
         total_expenses = 0
+        music_playing = False
+        dancers_for_privates: List[int] = []
         
         for idx, perf_data in enumerate(self.state.performers):
             perf = Performer(**perf_data)
@@ -1021,6 +1109,11 @@ class ClubManager:
                 
                 income += bonus
 
+                if perf.performer_type == PerformerType.DJ:
+                    music_playing = True
+                if perf.performer_type == PerformerType.DANCER:
+                    dancers_for_privates.append(idx)
+
                 sensual_bonus, ethics_delta, reputation_delta, notes = perf.perform_sensual_show(income)
                 if sensual_bonus:
                     income += sensual_bonus
@@ -1038,6 +1131,11 @@ class ClubManager:
             
             # Update performer data
             self.state.performers[idx] = asdict(perf)
+
+        if music_playing and dancers_for_privates:
+            private_revenue = self._process_private_dances(dancers_for_privates)
+            if private_revenue:
+                total_income += private_revenue
 
         # Random event chance with bouncer mitigation
         base_event_prob = 0.3
@@ -1071,6 +1169,97 @@ class ClubManager:
         
         input("\nPress Enter to continue...")
     
+    def _process_private_dances(
+        self,
+        dancer_indices: List[int],
+        prefix: str = "",
+        rng: Optional[random.Random] = None,
+    ) -> int:
+        """Handle private dance revenue for dancers when music is playing."""
+        if not dancer_indices:
+            return 0
+
+        tag = f"{prefix} " if prefix else ""
+        crowd_factor = max(1, self.state.city_demand // 90)
+        crowd_factor += max(0, (self.state.reputation - 40) // 20)
+
+        if crowd_factor <= 0:
+            return 0
+
+        rand = rng.random if rng is not None else random.random
+        has_bouncer = self.has_bouncer()
+        security_level = self.state.upgrades.get("security_suite", 0)
+        bounce_chance = min(0.9, 0.65 + 0.08 * security_level) if has_bouncer else 0.0
+        touch_probability = 0.18
+
+        total_dances = 0
+        summaries: List[str] = []
+
+        for idx in dancer_indices:
+            dancer = Performer(**self.state.performers[idx])
+            if dancer.energy <= 0:
+                continue
+
+            skill_bonus = max(0, dancer.skill - 5) // 3
+            loyalty_bonus = max(0, dancer.loyalty - 6) // 3
+            max_dances = min(4, crowd_factor + skill_bonus + loyalty_bonus)
+            max_dances = min(max_dances, dancer.energy)
+
+            if max_dances <= 0:
+                continue
+
+            success_dances = 0
+            touch_incidents = 0
+            ejected = False
+            attempts = 0
+
+            while attempts < max_dances and dancer.energy > 0:
+                dancer.energy -= 1
+                attempts += 1
+                success_dances += 1
+
+                if rand() < touch_probability:
+                    touch_incidents += 1
+                    if has_bouncer and rand() < bounce_chance:
+                        success_dances -= 1
+                        ejected = True
+                        self.state.reputation = max(0, self.state.reputation - 1)
+                        print(
+                            f"{tag}🚨 Bouncer intervened during {dancer.name}'s private dance and escorted the patron out."
+                        )
+                        break
+                    penalty = 1 if has_bouncer else 2
+                    self.state.ethics_score = max(0, self.state.ethics_score - penalty)
+
+            self.state.performers[idx] = asdict(dancer)
+
+            if success_dances > 0:
+                total_dances += success_dances
+                summary = (
+                    f"♪ {dancer.name} sold {success_dances} private dance"
+                    f"{'s' if success_dances != 1 else ''}."
+                )
+                if touch_incidents and not ejected:
+                    summary += f" ({touch_incidents} boundary warning{'s' if touch_incidents != 1 else ''} issued.)"
+                summaries.append(summary)
+            if ejected and success_dances == 0:
+                summaries.append(
+                    f"⚠ {dancer.name}'s private set ended early after a boundary breach."
+                )
+            elif ejected and success_dances > 0:
+                summaries.append(
+                    f"⚠ {dancer.name}'s private set wrapped early after a boundary breach."
+                )
+
+        if total_dances == 0:
+            return 0
+
+        revenue = total_dances * 20
+        for line in summaries:
+            print(f"{tag}{line}")
+        print(f"{tag}💸 Private dances revenue: {total_dances} x $20 = ${revenue}")
+        return revenue
+
     def _event_meets_prerequisites(self, event_id: str, meta: Dict, chain_depth: int) -> bool:
         cooldown_until = self.state.event_cooldowns.get(event_id, 0)
         if self.state.day < cooldown_until:

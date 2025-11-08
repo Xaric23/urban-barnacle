@@ -17,6 +17,28 @@ from game import (
 )
 
 
+class DummyRng:
+	"""RNG helper that always avoids triggering special events."""
+
+	def random(self) -> float:
+		return 0.99
+
+
+class SequenceRng:
+	"""RNG helper that returns a fixed sequence before falling back high."""
+
+	def __init__(self, values: list[float]):
+		self._values = list(values)
+		self._index = 0
+
+	def random(self) -> float:
+		if self._index < len(self._values):
+			value = self._values[self._index]
+			self._index += 1
+			return value
+		return 0.99
+
+
 class TestNightclubGame(unittest.TestCase):
 	"""Unit tests covering key systems in Underground Club Manager."""
 
@@ -233,6 +255,111 @@ class TestNightclubGame(unittest.TestCase):
 		self.assertGreaterEqual(rep_delta, 1)
 		self.assertTrue(notes)
 		self.assertLess(perf.energy, 8)
+
+	def test_after_hours_exclusive_bonus(self) -> None:
+		perf = Performer(
+			name="Noir Siren",
+			performer_type=PerformerType.DANCER,
+			gender=Gender.FEMALE,
+			traits=["Charismatic"],
+			skill=9,
+			loyalty=9,
+			energy=10,
+			salary=700,
+			reputation=12,
+			promotion_level=0,
+			offers_striptease=True,
+			dancer_strip_routine=False,
+			offers_private_lounge=True,
+			after_hours_exclusive=True,
+		)
+		bonus, ethics_delta, rep_delta, notes = perf.perform_sensual_show(500)
+		self.assertGreaterEqual(bonus, 600)
+		self.assertLessEqual(ethics_delta, -10)
+		self.assertGreaterEqual(rep_delta, 3)
+		self.assertTrue(any("After-hours exclusive" in note for note in notes))
+		self.assertLess(perf.energy, 10)
+
+	def test_private_dances_generate_revenue(self) -> None:
+		mgr = ClubManager()
+		mgr.state.performers = []
+		mgr.state.relationships = {}
+		mgr.state.city_demand = 180
+		mgr.state.reputation = 80
+
+		dj = Performer(
+			name="Beat Pilot",
+			performer_type=PerformerType.DJ,
+			gender=Gender.MALE,
+			traits=["Creative"],
+			skill=7,
+			loyalty=7,
+			energy=9,
+			salary=550,
+			reputation=5,
+		)
+		dancer = Performer(
+			name="Amber Glow",
+			performer_type=PerformerType.DANCER,
+			gender=Gender.FEMALE,
+			traits=["Charismatic"],
+			skill=9,
+			loyalty=8,
+			energy=6,
+			salary=500,
+			reputation=12,
+		)
+
+		mgr.state.performers.extend([asdict(dj), asdict(dancer)])
+		mgr.state.relationships[dj.name] = 7
+		mgr.state.relationships[dancer.name] = 8
+
+		revenue = mgr._process_private_dances([1], rng=DummyRng())
+		self.assertEqual(revenue, 80)
+		updated = Performer(**mgr.state.performers[1])
+		self.assertEqual(updated.energy, 2)
+		self.assertEqual(mgr.state.ethics_score, 50)
+
+	def test_bouncer_handles_touch_incident(self) -> None:
+		mgr = ClubManager()
+		mgr.state.city_demand = 140
+		mgr.state.reputation = 60
+
+		dj = Performer(
+			name="Night Tempo",
+			performer_type=PerformerType.DJ,
+			gender=Gender.MALE,
+			traits=["Creative"],
+			skill=6,
+			loyalty=6,
+			energy=8,
+			salary=520,
+			reputation=6,
+		)
+		dancer = Performer(
+			name="Saffron",
+			performer_type=PerformerType.DANCER,
+			gender=Gender.FEMALE,
+			traits=["Charismatic"],
+			skill=7,
+			loyalty=7,
+			energy=5,
+			salary=480,
+			reputation=9,
+		)
+
+		mgr.state.performers.append(asdict(dj))
+		mgr.state.performers.append(asdict(dancer))
+		mgr.state.relationships[dj.name] = 6
+		mgr.state.relationships[dancer.name] = 8
+
+		revenue = mgr._process_private_dances(
+			[len(mgr.state.performers) - 1], rng=SequenceRng([0.05, 0.1])
+		)
+		self.assertEqual(revenue, 0)
+		updated = Performer(**mgr.state.performers[-1])
+		self.assertEqual(updated.energy, 4)
+		self.assertEqual(mgr.state.reputation, 59)
 
 	def test_bouncer_is_security(self) -> None:
 		mgr = ClubManager()

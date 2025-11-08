@@ -425,6 +425,8 @@ class AutomatedClubManager(ClubManager):
 
 		total_income = 0
 		total_expenses = 0
+		music_playing = False
+		dancers_for_privates: list[int] = []
 
 		for idx, pdata in enumerate(list(self.state.performers)):
 			perf = Performer(**pdata)
@@ -442,6 +444,11 @@ class AutomatedClubManager(ClubManager):
 				elif "Charismatic" in perf.traits:
 					bonus = int(income * 0.05)
 				income += bonus
+
+				if perf.performer_type == PerformerType.DJ:
+					music_playing = True
+				if perf.performer_type == PerformerType.DANCER:
+					dancers_for_privates.append(idx)
 
 				income = int(income * (self.state.city_demand / 100.0))
 				ptype_key = perf.performer_type.value if isinstance(perf.performer_type, PerformerType) else str(perf.performer_type)
@@ -465,6 +472,11 @@ class AutomatedClubManager(ClubManager):
 				print(f"✗ {perf.name} was exhausted and could not perform.")
 
 			self.state.performers[idx] = asdict(perf)
+
+		if music_playing and dancers_for_privates:
+			private_revenue = self._process_private_dances(dancers_for_privates, prefix=self.demo_log_prefix)
+			if private_revenue:
+				total_income += private_revenue
 
 		base_event_prob = 0.3
 		if self.has_bouncer():
