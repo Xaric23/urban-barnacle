@@ -33,7 +33,6 @@ export default function RecruitPerformer({ state, onUpdate, onBack }: RecruitPer
     onUpdate(newState);
     alert(`✓ ${candidate.name} has been hired!`);
     setCandidate(null);
-    setSelectedType(null);
   };
 
   if (candidate) {
