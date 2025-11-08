@@ -79,6 +79,11 @@ The game is packaged using:
 - Check Windows Defender/antivirus isn't blocking the app
 - Try running the installer as administrator
 
+### Windows SmartScreen Warning
+- The executable is unsigned, so Windows may show a SmartScreen warning
+- Click "More info" and then "Run anyway" to proceed
+- This is normal for unsigned applications
+
 ## File Structure
 
 ```
@@ -97,3 +102,4 @@ The game is packaged using:
 - Save files are stored in your user's local app data folder
 - The first launch may be slower as Windows verifies the application
 - You may need to allow the app through Windows Firewall on first launch
+- **The executable is unsigned** - Windows may show a SmartScreen warning on first run. Click "More info" then "Run anyway" to proceed. This is normal for unsigned applications.
