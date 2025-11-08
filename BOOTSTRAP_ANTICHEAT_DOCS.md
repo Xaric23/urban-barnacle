@@ -386,6 +386,18 @@ useEffect(() => {
 }, [gameState, isBootstrapping]);
 ```
 
+## Auto-Update System Integration
+
+The bootstrap system now works alongside an auto-update system (for desktop executable builds only):
+
+- **Automatic Updates**: When new versions are released on GitHub Releases, the desktop app automatically checks for updates
+- **User Control**: Users choose when to download and install updates
+- **No Interruption**: Update checks happen in the background
+- **Save Compatibility**: Game saves are preserved during updates
+- **Bootstrap + Updates**: The bootstrap system validates saves on every load, including after updates
+
+See [AUTO_UPDATE_GUIDE.md](AUTO_UPDATE_GUIDE.md) for complete auto-update documentation.
+
 ## Future Enhancements
 
 Potential improvements for the anti-cheat system:
