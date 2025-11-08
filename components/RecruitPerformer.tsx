@@ -9,11 +9,9 @@ interface RecruitPerformerProps {
 }
 
 export default function RecruitPerformer({ state, onUpdate, onBack }: RecruitPerformerProps) {
-  const [selectedType, setSelectedType] = useState<PerformerType | null>(null);
   const [candidate, setCandidate] = useState<ReturnType<typeof generatePerformer> | null>(null);
 
   const handleGenerateCandidate = (type: PerformerType) => {
-    setSelectedType(type);
     const newCandidate = generatePerformer(type);
     setCandidate(newCandidate);
   };
@@ -35,7 +33,6 @@ export default function RecruitPerformer({ state, onUpdate, onBack }: RecruitPer
     onUpdate(newState);
     alert(`✓ ${candidate.name} has been hired!`);
     setCandidate(null);
-    setSelectedType(null);
   };
 
   if (candidate) {

@@ -1,7 +1,7 @@
 // Game Logic and State Management for Underground Club Manager
 
-import { GameState, Performer, PerformerType, Gender, Upgrade, ClothingSlot, Wardrobe, PersonalityArchetype, ThemedNightType, Rumor } from './types';
-import { PERSONALITY_TRAITS, generateFullName, CLOTHING_CATALOG, PERSONALITY_ARCHETYPES, CHEMISTRY_COMPATIBILITY, THEMED_NIGHTS, SKILL_CARDS, CROWD_KINKS } from './constants';
+import { GameState, Performer, PerformerType, Gender, Upgrade, ClothingSlot, Wardrobe } from './types';
+import { PERSONALITY_TRAITS, generateFullName, CLOTHING_CATALOG } from './constants';
 
 export function createInitialGameState(): GameState {
   return {

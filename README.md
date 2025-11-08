@@ -20,6 +20,12 @@ A text-based management game where you run an underground nightclub. Recruit and
 - **Club Upgrades**: Improve facilities to boost performance
 - **Performance Bonuses**: Traits grant income bonuses during performances
 
+### System Features
+- **🔒 Anti-Cheat Protection**: SHA-256 checksum validation prevents save file tampering (ported from Python implementation)
+- **🚀 Bootstrap Launcher**: Professional loading sequence with integrity checking and validation
+- **💾 Secure Saves**: Tamper-evident save files with automatic corruption detection
+- **🔄 Auto-Recovery**: Graceful handling of corrupted saves with automatic new game creation
+
 ## 🚀 Technology Stack
 
 - **Framework**: Next.js 14 (App Router)
@@ -94,7 +100,7 @@ npm start
 urban-barnacle/
 ├── app/                    # Next.js app directory
 │   ├── layout.tsx         # Root layout
-│   ├── page.tsx           # Main game page
+│   ├── page.tsx           # Main game page (with bootstrap integration)
 │   └── globals.css        # Global styles
 ├── components/            # React components
 │   ├── GameHeader.tsx
@@ -103,13 +109,29 @@ urban-barnacle/
 │   ├── ManagePerformers.tsx
 │   ├── RunClubNight.tsx
 │   ├── ViewStats.tsx
-│   └── UpgradeShop.tsx
+│   ├── UpgradeShop.tsx
+│   └── LoadingScreen.tsx  # Bootstrap loading screen
 ├── lib/                   # Game logic
 │   ├── types.ts           # TypeScript interfaces
 │   ├── constants.ts       # Game constants
-│   └── gameLogic.ts       # Core game functions
-└── python-original/       # Original Python implementation
+│   ├── gameLogic.ts       # Core game functions
+│   ├── antiCheat.ts       # Anti-cheat system (SHA-256)
+│   └── bootstrap.ts       # Bootstrap/launcher system
+├── python-original/       # Original Python implementation
+└── BOOTSTRAP_ANTICHEAT_DOCS.md  # Anti-cheat documentation
 ```
+
+## 🔒 Security & Anti-Cheat
+
+This game includes a comprehensive anti-cheat system ported from the Python implementation:
+
+- **SHA-256 Checksums**: Save files are protected with cryptographic hashes
+- **Integrity Validation**: All game values are validated for impossible ranges
+- **Tampering Detection**: Automatically detects and handles save file modifications
+- **Time Manipulation Detection**: Prevents exploits through date/time changes
+- **Graceful Recovery**: Creates new game if corruption is detected
+
+See [BOOTSTRAP_ANTICHEAT_DOCS.md](BOOTSTRAP_ANTICHEAT_DOCS.md) for complete documentation.
 
 ## 🔧 Development
 
