@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Underground Club Manager - A Text-Based Management Game
 Manage your underground nightclub, recruit performers, balance ethics and profit,
@@ -40,6 +40,7 @@ class Gender(Enum):
     INTERSEX = "intersex"
 
 
+<<<<<<< HEAD
 # Comprehensive trait system - 50+ unique traits
 PERSONALITY_TRAITS = [
     # Positive traits
@@ -68,6 +69,47 @@ PERSONALITY_TRAITS = [
     "Sophisticated", "Street Smart", "Book Smart", "Athletic", "Artistic",
     "Musical Genius", "Dancing Legend", "Vocal Powerhouse", "Tech Savvy", "Fashion Icon"
 ]
+=======
+# Anti-cheat constants and helpers
+_SAVE_SALT = "v1|NightclubGameSalt|DoNotModify"  # Changing this invalidates all saves
+MAX_EVENT_HISTORY = 10
+
+def compute_checksum(data: Dict) -> str:
+    """Compute a SHA256 checksum over the save data (excluding existing checksum)."""
+    filtered = {k: data[k] for k in sorted(data) if k != 'checksum'}
+    serialized = json.dumps(filtered, separators=(",", ":"), sort_keys=True)
+    return hashlib.sha256((_SAVE_SALT + serialized).encode()).hexdigest()
+
+
+def _serialize_performer_dict(p: Dict) -> Dict:
+    """Convert enum fields in a performer dict to JSON-safe strings."""
+    out = dict(p)
+    role = out.get("performer_type")
+    gender = out.get("gender")
+    if isinstance(role, Enum):
+        out["performer_type"] = role.value
+    if isinstance(gender, Enum):
+        out["gender"] = gender.value
+    return out
+
+
+def _deserialize_performer_dict(p: Dict) -> Dict:
+    """Convert performer dict fields from strings back to Enum types."""
+    out = dict(p)
+    role = out.get("performer_type")
+    gender = out.get("gender")
+    try:
+        if isinstance(role, str):
+            out["performer_type"] = PerformerType(role)
+    except Exception:
+        pass
+    try:
+        if isinstance(gender, str):
+            out["gender"] = Gender(gender)
+    except Exception:
+        pass
+    return out
+>>>>>>> bdced82 (Add automation manager system)
 
 
 @dataclass
@@ -115,6 +157,16 @@ class GameState:
     relationships: Dict[str, int] = None  # performer_name -> relationship_level
     story_flags: Dict[str, bool] = None
     completed_events: List[str] = None
+<<<<<<< HEAD
+=======
+    upgrades: Dict[str, int] = None  # upgrade_id -> level
+    city_demand: int = 100  # Base demand percentage (affects crowd size)
+    genre_trend: Dict[str, int] = None  # performer_type.value -> trend modifier (-20..+20)
+    risk_level: str = "standard"  # conservative | standard | bold
+    event_cooldowns: Dict[str, int] = None  # event_id -> day_available_again
+    event_history: List[str] = None
+    last_event_day: int = 0
+>>>>>>> bdced82 (Add automation manager system)
     
     def __post_init__(self):
         if self.performers is None:
@@ -125,6 +177,20 @@ class GameState:
             self.story_flags = {}
         if self.completed_events is None:
             self.completed_events = []
+<<<<<<< HEAD
+=======
+        if self.upgrades is None:
+            self.upgrades = {}
+        if self.genre_trend is None:
+            # Initialize neutral trends per performer type
+            self.genre_trend = {ptype.value: 0 for ptype in PerformerType}
+        if self.event_cooldowns is None:
+            self.event_cooldowns = {}
+        if self.event_history is None:
+            self.event_history = []
+        if self.last_event_day is None:
+            self.last_event_day = 0
+>>>>>>> bdced82 (Add automation manager system)
 
 
 class ClubManager:
@@ -134,6 +200,322 @@ class ClubManager:
         self.state = GameState()
         self.running = True
         self.save_file = "savegame.json"
+<<<<<<< HEAD
+=======
+        self.auto_manager = None  # Initialize automation manager
+        # Ensure critical staff roles exist for a functional club
+        self.ensure_bouncer(initial=True)
+        self.upgrade_catalog = self._build_upgrade_catalog()
+        self.promotion_catalog = self._build_promotion_catalog()
+        self.event_registry = self._build_event_registry()
+
+    def _build_upgrade_catalog(self) -> Dict[str, Dict]:
+        """Define available club upgrades.
+        Each entry: id -> {name, desc, base_cost, max_level, effects: callable or dict}
+        Effects will be applied dynamically; store scalar modifiers here.
+        """
+        return {
+            "sound_system": {
+                "name": "Pro Sound System",
+                "desc": "Boosts performer income and reduces equipment failure chance.",
+                "base_cost": 2500,
+                "max_level": 3,
+                "income_pct": 0.05,  # per level
+                "event_failure_reduction": 0.05  # per level
+            },
+            "vip_lounge": {
+                "name": "VIP Lounge",
+                "desc": "Attracts high-roller patrons increasing crowd spending.",
+                "base_cost": 4000,
+                "max_level": 2,
+                "spending_power_pct": 0.10  # per level
+            },
+            "marketing": {
+                "name": "Marketing Hub",
+                "desc": "Increases crowd size and reputation gains.",
+                "base_cost": 3000,
+                "max_level": 3,
+                "crowd_size_pct": 0.08,  # per level
+                "rep_gain_pct": 0.05  # per level
+            },
+            "security_suite": {
+                "name": "Security Suite",
+                "desc": "Further reduces negative event probability.",
+                "base_cost": 2000,
+                "max_level": 2,
+                "event_prob_reduction": 0.07  # per level
+            }
+        }
+
+    def _build_promotion_catalog(self) -> Dict[str, Dict]:
+        """Define promotion tracks for each performer type.
+        
+        Each promotion level requires:
+        - Minimum skill
+        - Cost
+        - Provides team-wide or individual buffs
+        """
+        return {
+            PerformerType.DANCER.value: [
+                {"title": "Choreographer", "skill_req": 6, "cost": 1500, "buff": "team_energy_regen", "desc": "Creates routines, +1 energy regen for all dancers"},
+                {"title": "Dance Captain", "skill_req": 8, "cost": 3000, "buff": "crowd_bonus", "desc": "Inspires performances, +8% crowd bonus"},
+                {"title": "Artistic Director", "skill_req": 10, "cost": 5000, "buff": "reputation_gain", "desc": "Sets club vision, +2 reputation per night"}
+            ],
+            PerformerType.SINGER.value: [
+                {"title": "Vocal Coach", "skill_req": 6, "cost": 1500, "buff": "training_efficiency", "desc": "Trains others, +50% training effectiveness"},
+                {"title": "Headliner", "skill_req": 8, "cost": 3000, "buff": "income_boost", "desc": "Star power, +15% income for all singers"},
+                {"title": "Music Director", "skill_req": 10, "cost": 5000, "buff": "event_quality", "desc": "Elevates shows, better event outcomes"}
+            ],
+            PerformerType.DJ.value: [
+                {"title": "Sound Engineer", "skill_req": 6, "cost": 1500, "buff": "equipment_reliability", "desc": "Maintains gear, -30% equipment failures"},
+                {"title": "Resident DJ", "skill_req": 8, "cost": 3000, "buff": "mood_boost", "desc": "Vibe master, +1 avg patron mood"},
+                {"title": "Festival Curator", "skill_req": 10, "cost": 5000, "buff": "demand_boost", "desc": "Draws crowds, +10% city demand"}
+            ],
+            PerformerType.BARTENDER.value: [
+                {"title": "Mixologist", "skill_req": 6, "cost": 1500, "buff": "spending_power", "desc": "Crafts premium drinks, +10% patron spending"},
+                {"title": "Bar Manager", "skill_req": 8, "cost": 3000, "buff": "expense_reduction", "desc": "Efficient ops, -10% daily expenses"},
+                {"title": "Hospitality Director", "skill_req": 10, "cost": 5000, "buff": "vip_attraction", "desc": "Attracts high-rollers, more VIPs"}
+            ],
+            PerformerType.SECURITY.value: [
+                {"title": "Head of Security", "skill_req": 6, "cost": 1500, "buff": "conflict_prevention", "desc": "De-escalates issues, -20% conflict events"},
+                {"title": "Safety Coordinator", "skill_req": 8, "cost": 3000, "buff": "loyalty_boost", "desc": "Creates safe space, +1 loyalty for all staff"},
+                {"title": "Operations Chief", "skill_req": 10, "cost": 5000, "buff": "crisis_mitigation", "desc": "Handles emergencies, better crisis outcomes"}
+            ]
+        }
+
+    def _build_event_registry(self) -> Dict[str, Dict]:
+        """Define all possible random events with metadata for dynamic selection.
+        
+        Each event has:
+        - handler: callable method
+        - tags: list of string tags (business, moral, relationship, crisis, opportunity)
+        - risk_rating: 1-5 (higher = more intense)
+        - cooldown: days before can trigger again
+        - prerequisites: dict of checks (min_reputation, min_performers, has_upgrade, etc.)
+        - weight: base probability weight (higher = more common)
+        """
+        return {
+            "vip_visitor": {
+                "handler": self.event_vip_visitor,
+                "tags": ["business", "moral"],
+                "risk_rating": 3,
+                "cooldown": 14,
+                "prerequisites": {"min_reputation": 40},
+                "weight": 10
+            },
+            "equipment_failure": {
+                "handler": self.event_equipment_failure,
+                "tags": ["crisis", "business"],
+                "risk_rating": 2,
+                "cooldown": 10,
+                "prerequisites": {},
+                "weight": 8
+            },
+            "rival_club": {
+                "handler": self.event_rival_club,
+                "tags": ["business", "relationship"],
+                "risk_rating": 4,
+                "cooldown": 21,
+                "prerequisites": {"min_performers": 1},
+                "weight": 6
+            },
+            "performer_conflict": {
+                "handler": self.event_performer_conflict,
+                "tags": ["relationship", "crisis"],
+                "risk_rating": 3,
+                "cooldown": 14,
+                "prerequisites": {"min_performers": 2},
+                "weight": 7
+            },
+            "talent_scout": {
+                "handler": self.event_talent_scout,
+                "tags": ["opportunity", "business"],
+                "risk_rating": 1,
+                "cooldown": 20,
+                "prerequisites": {"min_reputation": 50},
+                "weight": 5
+            },
+            "health_inspection": {
+                "handler": self.event_health_inspection,
+                "tags": ["crisis", "business"],
+                "risk_rating": 3,
+                "cooldown": 30,
+                "prerequisites": {},
+                "weight": 4
+            },
+            "media_coverage": {
+                "handler": self.event_media_coverage,
+                "tags": ["opportunity", "reputation"],
+                "risk_rating": 2,
+                "cooldown": 15,
+                "prerequisites": {"min_reputation": 60},
+                "weight": 6
+            },
+            "performer_breakthrough": {
+                "handler": self.event_performer_breakthrough,
+                "tags": ["opportunity", "relationship"],
+                "risk_rating": 1,
+                "cooldown": 25,
+                "prerequisites": {"min_performers": 1},
+                "weight": 5
+            }
+        }
+
+    def can_promote(self, performer: Performer) -> Optional[Dict]:
+        """Check if performer can be promoted and return next promotion info."""
+        ptype_key = performer.performer_type.value if isinstance(performer.performer_type, PerformerType) else str(performer.performer_type)
+        track = self.promotion_catalog.get(ptype_key, [])
+        
+        if performer.promotion_level >= len(track):
+            return None  # Already at max
+        
+        next_promo = track[performer.promotion_level]
+        if performer.skill >= next_promo["skill_req"]:
+            return next_promo
+        return None
+
+    def promote_performer(self, idx: int) -> bool:
+        """Attempt to promote a performer."""
+        perf_data = self.state.performers[idx]
+        perf = Performer(**perf_data)
+        
+        promo_info = self.can_promote(perf)
+        if not promo_info:
+            return False
+        
+        if self.state.money < promo_info["cost"]:
+            print(f"\n✗ Promotion costs ${promo_info['cost']}!")
+            return False
+        
+        self.state.money -= promo_info["cost"]
+        perf.promotion_level += 1
+        self.state.performers[idx] = asdict(perf)
+        
+        print(f"\n✓ {perf.name} promoted to {promo_info['title']}!")
+        print(f"   Buff: {promo_info['desc']}")
+        self.state.ethics_score = min(100, self.state.ethics_score + 2)  # Investing in people
+        
+        return True
+
+    def get_active_buffs(self) -> Dict[str, int]:
+        """Aggregate all active promotion buffs across the team."""
+        buffs = {}
+        for perf_data in self.state.performers:
+            perf = Performer(**perf_data)
+            if perf.promotion_level == 0:
+                continue
+            
+            ptype_key = perf.performer_type.value if isinstance(perf.performer_type, PerformerType) else str(perf.performer_type)
+            track = self.promotion_catalog.get(ptype_key, [])
+            
+            for level_idx in range(perf.promotion_level):
+                if level_idx < len(track):
+                    buff_type = track[level_idx]["buff"]
+                    buffs[buff_type] = buffs.get(buff_type, 0) + 1
+        
+        return buffs
+
+    def adjust_weekly_economy(self):
+        """Simulate weekly shifts in city demand and genre trends."""
+        # Demand drift ±10
+        self.state.city_demand = max(60, min(140, self.state.city_demand + random.randint(-10, 10)))
+        # Genre trends: each type small random nudge ±5 within -30..+30
+        for ptype in PerformerType:
+            key = ptype.value
+            self.state.genre_trend[key] = max(-30, min(30, self.state.genre_trend[key] + random.randint(-5, 5)))
+        
+        # Promotion buff: demand_boost from Festival Curator (DJ level 3)
+        buffs = self.get_active_buffs()
+        if buffs.get("demand_boost", 0) > 0:
+            self.state.city_demand = min(140, self.state.city_demand + 5)
+
+    def set_risk_level(self):
+        """Prompt user for nightly risk appetite."""
+        print("\nSelect nightly risk level:")
+        print("1. Conservative (fewer events, lower bonus)")
+        print("2. Standard")
+        print("3. Bold (higher bonus, more event risk)")
+        choice = input("Choice: ").strip()
+        mapping = {"1": "conservative", "2": "standard", "3": "bold"}
+        self.state.risk_level = mapping.get(choice, "standard")
+        print(f"Risk level set to: {self.state.risk_level}")
+
+    def manage_upgrades(self):
+        """Allow purchasing upgrades."""
+        print("\n--- CLUB UPGRADES ---")
+        for i, (uid, data) in enumerate(self.upgrade_catalog.items(), 1):
+            level = self.state.upgrades.get(uid, 0)
+            cost = int(data["base_cost"] * (1.5 ** level)) if level < data["max_level"] else None
+            status = f"Level {level}/{data['max_level']}"
+            if cost is not None:
+                status += f" | Cost: ${cost}"
+            else:
+                status += " | MAXED"
+            print(f"{i}. {data['name']} - {status}\n   {data['desc']}")
+        print(f"{len(self.upgrade_catalog)+1}. Back")
+        choice = input("Select upgrade: ").strip()
+        try:
+            idx = int(choice) - 1
+            if idx == len(self.upgrade_catalog):
+                return
+            keys = list(self.upgrade_catalog.keys())
+            if idx < 0 or idx >= len(keys):
+                print("Invalid choice.")
+                return
+            uid = keys[idx]
+            data = self.upgrade_catalog[uid]
+            level = self.state.upgrades.get(uid, 0)
+            if level >= data["max_level"]:
+                print("Already at max level.")
+                return
+            cost = int(data["base_cost"] * (1.5 ** level))
+            if self.state.money < cost:
+                print("Not enough funds.")
+                return
+            self.state.money -= cost
+            self.state.upgrades[uid] = level + 1
+            print(f"✓ Upgraded {data['name']} to level {level+1}.")
+        except ValueError:
+            print("Invalid input.")
+
+    def has_bouncer(self) -> bool:
+        """Return True if a security performer exists."""
+        for p in self.state.performers:
+            role = p.get("performer_type")
+            if role == "security" or role == PerformerType.SECURITY:
+                return True
+        return False
+
+    def ensure_bouncer(self, initial: bool = False):
+        """Ensure there is at least one SECURITY performer (bouncer).
+
+        If none exists, automatically create one with reasonable defaults.
+        When called during init (initial=True), no money is deducted.
+        """
+        if self.has_bouncer():
+            return
+        
+        name = generate_full_name()
+        gender = random.choice(list(Gender))
+        traits = random.sample(PERSONALITY_TRAITS, 2)
+        bouncer = Performer(
+            name=name,
+            performer_type=PerformerType.SECURITY,
+            gender=gender,
+            traits=traits,
+            skill=5,
+            loyalty=7,
+            energy=10,
+            salary=120,
+            reputation=0,
+        )
+        self.state.performers.append(asdict(bouncer))
+        self.state.relationships[name] = 6
+        if not initial:
+            # If added mid-game, simulate hiring cost (one week advance)
+            self.state.money -= bouncer.salary * 7
+        print(f"\n[+] Security hired: {name} (Bouncer)")
+>>>>>>> bdced82 (Add automation manager system)
         
     def save_game(self):
         """Save current game state"""
@@ -146,6 +528,16 @@ class ClubManager:
             'relationships': self.state.relationships,
             'story_flags': self.state.story_flags,
             'completed_events': self.state.completed_events
+<<<<<<< HEAD
+=======
+            ,'upgrades': self.state.upgrades,
+            'city_demand': self.state.city_demand,
+            'genre_trend': self.state.genre_trend,
+            'risk_level': self.state.risk_level,
+            'event_cooldowns': self.state.event_cooldowns,
+            'event_history': self.state.event_history,
+            'last_event_day': self.state.last_event_day
+>>>>>>> bdced82 (Add automation manager system)
         }
         with open(self.save_file, 'w') as f:
             json.dump(save_data, f, indent=2)
@@ -164,7 +556,20 @@ class ClubManager:
             self.state.money = save_data['money']
             self.state.reputation = save_data['reputation']
             self.state.ethics_score = save_data['ethics_score']
+<<<<<<< HEAD
             self.state.performers = save_data['performers']
+=======
+            # Restore performers and enum fields
+            restored_performers = [_deserialize_performer_dict(p) for p in save_data['performers']]
+            self.state.performers = restored_performers
+            self.state.upgrades = save_data.get('upgrades', {})
+            self.state.city_demand = save_data.get('city_demand', 100)
+            self.state.genre_trend = save_data.get('genre_trend', {ptype.value:0 for ptype in PerformerType})
+            self.state.risk_level = save_data.get('risk_level', 'standard')
+            self.state.event_cooldowns = save_data.get('event_cooldowns', {})
+            self.state.event_history = save_data.get('event_history', [])
+            self.state.last_event_day = save_data.get('last_event_day', 0)
+>>>>>>> bdced82 (Add automation manager system)
             self.state.relationships = save_data['relationships']
             self.state.story_flags = save_data['story_flags']
             self.state.completed_events = save_data['completed_events']
@@ -451,9 +856,27 @@ class ClubManager:
             idx = self.state.performers.index(perf_data)
             self.state.performers[idx] = asdict(perf)
         
+<<<<<<< HEAD
         # Random event chance
         if random.random() < 0.3:
             self.trigger_random_event()
+=======
+        # Random event chance with bouncer mitigation
+        base_event_prob = 0.3
+        if self.has_bouncer():
+            base_event_prob = max(0.1, base_event_prob - 0.1)
+        risk_mod = {"conservative": -0.12, "standard": 0.0, "bold": 0.10}[self.state.risk_level]
+        sec_lvl = self.state.upgrades.get("security_suite", 0)
+        sec_reduction = sec_lvl * self.upgrade_catalog["security_suite"]["event_prob_reduction"]
+        days_since_last = self.state.day - self.state.last_event_day if self.state.last_event_day else self.state.day
+        drought_bonus = min(0.25, max(0, days_since_last - 1) * 0.04)
+        event_prob = base_event_prob + risk_mod - sec_reduction + drought_bonus
+        event_prob = max(0.05, min(0.9, event_prob))
+        if random.random() < event_prob:
+            if self.trigger_random_event():
+                if self.state.risk_level == "bold" and random.random() < 0.35:
+                    self.trigger_random_event(chain_depth=1)
+>>>>>>> bdced82 (Add automation manager system)
         
         net_income = total_income - total_expenses
         self.state.money += net_income
@@ -471,6 +894,7 @@ class ClubManager:
         
         input("\nPress Enter to continue...")
     
+<<<<<<< HEAD
     def trigger_random_event(self):
         """Trigger a random event during club operation"""
         events = [
@@ -482,69 +906,437 @@ class ClubManager:
         
         event = random.choice(events)
         event()
+=======
+    def _event_meets_prerequisites(self, event_id: str, meta: Dict, chain_depth: int) -> bool:
+        cooldown_until = self.state.event_cooldowns.get(event_id, 0)
+        if self.state.day < cooldown_until:
+            return False
+
+        prereqs = meta.get("prerequisites", {})
+        if prereqs.get("min_reputation") and self.state.reputation < prereqs["min_reputation"]:
+            return False
+        if prereqs.get("min_performers") and len(self.state.performers) < prereqs["min_performers"]:
+            return False
+        if prereqs.get("has_upgrade") and self.state.upgrades.get(prereqs["has_upgrade"], 0) == 0:
+            return False
+        if prereqs.get("min_ethics") and self.state.ethics_score < prereqs["min_ethics"]:
+            return False
+
+        if chain_depth > 0 and meta.get("risk_rating", 3) >= 5:
+            return False
+
+        return True
+
+    def _compute_event_weight(self, event_id: str, meta: Dict, buffs: Dict[str, int], chain_depth: int) -> float:
+        weight = float(meta.get("weight", 1.0))
+        if weight <= 0:
+            return 0.0
+
+        risk_rating = meta.get("risk_rating", 3)
+        risk_level = self.state.risk_level
+        if risk_level == "bold":
+            weight *= 1.0 + 0.2 * (risk_rating - 3)
+        elif risk_level == "conservative":
+            if risk_rating > 3:
+                weight *= max(0.25, 1.0 - 0.25 * (risk_rating - 3))
+            else:
+                weight *= 1.05
+
+        if chain_depth > 0:
+            weight *= max(0.35, 0.8 - 0.1 * chain_depth)
+            if risk_rating >= 4:
+                weight *= 0.6
+
+        tags = meta.get("tags", [])
+        money = self.state.money
+
+        if "business" in tags:
+            if money < 2000:
+                weight *= 1.3
+            elif money > 10000:
+                weight *= 0.8
+
+        if "moral" in tags:
+            if self.state.ethics_score < 45:
+                weight *= 1.25
+            elif self.state.ethics_score > 75:
+                weight *= 0.85
+
+        if "crisis" in tags:
+            rep_gap = max(0, 60 - self.state.reputation)
+            weight *= 1.0 + rep_gap / 150.0
+            sec_lvl = self.state.upgrades.get("security_suite", 0)
+            if sec_lvl:
+                weight *= max(0.35, 1.0 - 0.12 * sec_lvl)
+            if buffs.get("conflict_prevention", 0):
+                weight *= 0.7
+
+        if "opportunity" in tags:
+            weight *= 1.0 + self.state.reputation / 160.0
+            if self.state.upgrades.get("marketing", 0) > 0:
+                weight *= 1.1
+
+        if "relationship" in tags:
+            if len(self.state.performers) <= 1:
+                weight *= 0.3
+            if buffs.get("loyalty_boost", 0):
+                weight *= 0.85
+
+        if self.state.event_history:
+            if event_id == self.state.event_history[-1]:
+                weight *= 0.2
+            recent = self.state.event_history[-3:]
+            if event_id in recent:
+                weight *= 0.4
+            occurrences = self.state.event_history.count(event_id)
+            if occurrences:
+                weight *= max(0.25, 1.0 - 0.1 * occurrences)
+
+        days_since = self.state.day - self.state.last_event_day if self.state.last_event_day else self.state.day
+        weight *= 1.0 + min(0.5, max(0, days_since - 1) * 0.05)
+
+        weight *= random.uniform(0.85, 1.15)
+        return max(0.0, weight)
+
+    def _build_event_pool(self, buffs: Dict[str, int], chain_depth: int) -> List[Tuple[str, Dict, float]]:
+        pool: List[Tuple[str, Dict, float]] = []
+        for event_id, meta in self.event_registry.items():
+            if not self._event_meets_prerequisites(event_id, meta, chain_depth):
+                continue
+            weight = self._compute_event_weight(event_id, meta, buffs, chain_depth)
+            if weight > 0:
+                pool.append((event_id, meta, weight))
+        return pool
+
+    def _generate_event_context(self, event_id: str, meta: Dict, chain_depth: int) -> Dict:
+        days_since = self.state.day - self.state.last_event_day if self.state.last_event_day else self.state.day
+        risk_scale = {"conservative": 0.88, "standard": 1.0, "bold": 1.18}[self.state.risk_level]
+        intensity = random.uniform(0.85, 1.15) * risk_scale
+        intensity *= max(0.7, 1.0 - 0.12 * chain_depth)
+        intensity = round(intensity, 2)
+        if intensity < 0.92:
+            severity = "low"
+        elif intensity > 1.08:
+            severity = "high"
+        else:
+            severity = "medium"
+        return {
+            "id": event_id,
+            "tags": list(meta.get("tags", [])),
+            "risk_rating": meta.get("risk_rating", 3),
+            "intensity": intensity,
+            "severity": severity,
+            "chain_depth": chain_depth,
+            "days_since_last_event": days_since,
+            "variant_seed": random.randint(1, 9999),
+            "club_money": self.state.money,
+            "reputation": self.state.reputation,
+            "ethics": self.state.ethics_score,
+            "city_demand": self.state.city_demand
+        }
+
+    def trigger_random_event(self, chain_depth: int = 0) -> bool:
+        """Trigger a random event using the event registry system."""
+        buffs = self.get_active_buffs()
+        event_pool = self._build_event_pool(buffs, chain_depth)
+        if not event_pool:
+            return False
+
+        weights = [item[2] for item in event_pool]
+        selection_index = random.choices(range(len(event_pool)), weights=weights, k=1)[0]
+        selected_id, selected_meta, _ = event_pool[selection_index]
+
+        cooldown_days = selected_meta.get("cooldown", 7)
+        self.state.event_cooldowns[selected_id] = self.state.day + cooldown_days
+
+        if selected_id not in self.state.completed_events:
+            self.state.completed_events.append(selected_id)
+
+        context = self._generate_event_context(selected_id, selected_meta, chain_depth)
+        selected_meta["handler"](context)
+
+        self.state.last_event_day = self.state.day
+        self.state.event_history.append(selected_id)
+        if len(self.state.event_history) > MAX_EVENT_HISTORY:
+            self.state.event_history = self.state.event_history[-MAX_EVENT_HISTORY:]
+        return True
+>>>>>>> bdced82 (Add automation manager system)
     
-    def event_vip_visitor(self):
+    def event_vip_visitor(self, context: Dict):
         """A VIP visitor arrives"""
+        intensity = context.get("intensity", 1.0)
+        severity = context.get("severity", "medium")
+        high_offer = max(700, int(random.randint(1700, 2600) * intensity))
+        alt_offer = max(350, int(random.randint(600, 1100) * (0.9 + 0.1 * intensity)))
+        ethics_penalty = random.randint(8, 12)
+        ethics_alt_gain = random.randint(4, 6)
+        ethics_decline_gain = random.randint(1, 3)
+        rep_gain_high = random.randint(3, 6)
+        rep_gain_alt = random.randint(2, 4)
+
         print("\n🌟 --- SPECIAL EVENT: VIP VISITOR --- 🌟")
         print("A wealthy patron has arrived at your club!")
         print("They're impressed and want to make a private booking.")
-        print("\nHowever, they're requesting some... questionable activities.")
+        print(f"\nThe request feels {severity.upper()} tonight.")
         
-        print("\n1. Accept the booking (+$2000, -10 ethics)")
-        print("2. Politely decline (no change)")
-        print("3. Offer an alternative ethical entertainment (+$800, +5 ethics)")
+        print(f"\n1. Accept the booking (+${high_offer}, -{ethics_penalty} ethics)")
+        print("2. Politely decline (small ethics boost)")
+        print(f"3. Offer an ethical alternative (+${alt_offer}, +{ethics_alt_gain} ethics)")
         
         choice = input("\nYour decision: ").strip()
         
         if choice == '1':
-            self.state.money += 2000
-            self.state.ethics_score = max(0, self.state.ethics_score - 10)
-            self.state.reputation += 5
+            self.state.money += high_offer
+            self.state.ethics_score = max(0, self.state.ethics_score - ethics_penalty)
+            self.state.reputation = min(100, self.state.reputation + rep_gain_high)
             print("\n✓ You accepted. Money gained, but at what cost?")
         elif choice == '2':
             print("\n✓ You maintained your principles.")
-            self.state.ethics_score = min(100, self.state.ethics_score + 2)
+            self.state.ethics_score = min(100, self.state.ethics_score + ethics_decline_gain)
         elif choice == '3':
-            self.state.money += 800
-            self.state.ethics_score = min(100, self.state.ethics_score + 5)
-            self.state.reputation += 3
+            self.state.money += alt_offer
+            self.state.ethics_score = min(100, self.state.ethics_score + ethics_alt_gain)
+            self.state.reputation = min(100, self.state.reputation + rep_gain_alt)
             print("\n✓ A wise compromise! They accepted your alternative.")
         
         input("\nPress Enter to continue...")
     
-    def event_equipment_failure(self):
+    def event_equipment_failure(self, context: Dict):
         """Equipment breaks down"""
+        intensity = context.get("intensity", 1.0)
+        severity = context.get("severity", "medium")
         print("\n⚠️ --- EVENT: EQUIPMENT FAILURE --- ⚠️")
         print("Your sound system has failed mid-performance!")
+        print(f"Severity assessment: {severity.capitalize()}.")
         
+<<<<<<< HEAD
         repair_cost = 500
+=======
+        ss_lvl = self.state.upgrades.get("sound_system", 0)
+        base_cost = random.randint(420, 680)
+        repair_cost = max(100, int(base_cost * intensity))
+        if ss_lvl:
+            repair_cost = max(80, int(repair_cost * (1.0 - 0.15 * ss_lvl)))
+        cancel_rep_loss = max(5, int(8 * intensity))
+        continue_rep_loss = max(3, int(5 * intensity))
+        continue_ethics_loss = max(2, int(3 * intensity))
+        cancel_ethics_gain = random.randint(3, 6)
+        repair_ethics_gain = random.randint(2, 4)
+>>>>>>> bdced82 (Add automation manager system)
         
         print(f"\n1. Pay for immediate repair (${repair_cost})")
-        print("2. Cancel the night (refund customers, -10 reputation)")
-        print("3. Continue without sound (-5 reputation, keep income)")
+        print(f"2. Cancel the night (refund customers, -{cancel_rep_loss} reputation, +{cancel_ethics_gain} ethics)")
+        print(f"3. Continue without sound (-{continue_rep_loss} reputation, -{continue_ethics_loss} ethics)")
         
         choice = input("\nYour decision: ").strip()
         
         if choice == '1':
             if self.state.money >= repair_cost:
                 self.state.money -= repair_cost
-                self.state.ethics_score = min(100, self.state.ethics_score + 3)
+                self.state.ethics_score = min(100, self.state.ethics_score + repair_ethics_gain)
                 print("\n✓ Equipment repaired! The show goes on.")
             else:
-                print(f"\n✗ Not enough money! Forced to cancel.")
-                self.state.reputation = max(0, self.state.reputation - 10)
+                print("\n✗ Not enough money! Forced to cancel.")
+                self.state.reputation = max(0, self.state.reputation - cancel_rep_loss)
         elif choice == '2':
-            self.state.reputation = max(0, self.state.reputation - 10)
-            self.state.ethics_score = min(100, self.state.ethics_score + 5)
+            self.state.reputation = max(0, self.state.reputation - cancel_rep_loss)
+            self.state.ethics_score = min(100, self.state.ethics_score + cancel_ethics_gain)
             print("\n✓ Customers appreciate your honesty.")
         elif choice == '3':
-            self.state.reputation = max(0, self.state.reputation - 5)
-            self.state.ethics_score = max(0, self.state.ethics_score - 3)
+            self.state.reputation = max(0, self.state.reputation - continue_rep_loss)
+            self.state.ethics_score = max(0, self.state.ethics_score - continue_ethics_loss)
             print("\n✓ The night continues, but customers are disappointed.")
         
         input("\nPress Enter to continue...")
     
+<<<<<<< HEAD
     def event_rival_club(self):
+=======
+    def event_talent_scout(self, context: Dict):
+        """A talent scout is interested in one of your performers."""
+        if not self.state.performers:
+            return
+        
+        print("\n🎬 --- EVENT: TALENT SCOUT --- 🎬")
+        target = random.choice(self.state.performers)
+        perf = Performer(**target)
+        intensity = context.get("intensity", 1.0)
+        base_offer = perf.skill * 750 + random.randint(400, 1400)
+        offer = max(600, int(base_offer * intensity))
+        downtime = max(2, int(round(3 * intensity)))
+        rep_gain = random.randint(2, 5)
+        ethics_gain = random.randint(2, 4)
+        
+        print(f"A talent scout wants to hire {perf.name} for an external gig!")
+        print(f"They're offering ${offer} but {perf.name} will be unavailable for {downtime} days.")
+        
+        print("\n1. Accept the offer (gain money, lose performer temporarily)")
+        print("2. Decline to keep your roster intact")
+        print("3. Negotiate for a better deal (requires relationship > 7)")
+        
+        choice = input("\nYour decision: ").strip()
+        
+        if choice == '1':
+            self.state.money += offer
+            perf.energy = max(0, perf.energy - downtime)
+            idx = self.state.performers.index(target)
+            self.state.performers[idx] = asdict(perf)
+            self.state.reputation = min(100, self.state.reputation + rep_gain)
+            print(f"\n✓ {perf.name} takes the gig. Money earned and reputation boosted!")
+        elif choice == '2':
+            perf.loyalty = min(10, perf.loyalty + 1)
+            idx = self.state.performers.index(target)
+            self.state.performers[idx] = asdict(perf)
+            print(f"\n✓ {perf.name} appreciates your loyalty.")
+            self.state.ethics_score = min(100, self.state.ethics_score + ethics_gain)
+        elif choice == '3':
+            if self.state.relationships.get(perf.name, 0) > 7:
+                bonus_multiplier = 1.25 + max(-0.1, (intensity - 1.0) * 0.2)
+                better_offer = int(offer * bonus_multiplier)
+                self.state.money += better_offer
+                perf.energy = max(0, perf.energy - max(1, downtime - 1))
+                idx = self.state.performers.index(target)
+                self.state.performers[idx] = asdict(perf)
+                self.state.reputation = min(100, self.state.reputation + rep_gain + 1)
+                print(f"\n✓ Negotiation successful! Earned ${better_offer} with shorter absence.")
+            else:
+                print(f"\n✗ {perf.name} doesn't trust you enough for negotiations. Offer declined.")
+        
+        input("\nPress Enter to continue...")
+    
+    def event_health_inspection(self, context: Dict):
+        """Health inspector shows up unannounced."""
+        intensity = context.get("intensity", 1.0)
+        severity = context.get("severity", "medium")
+        print("\n🏥 --- EVENT: HEALTH INSPECTION --- 🏥")
+        print("A city health inspector has arrived for a surprise inspection!")
+        print(f"Inspection intensity: {severity.capitalize()}.")
+        
+        # Base pass chance
+        pass_chance = 0.6 - (intensity - 1.0) * 0.2
+        
+        # VIP lounge upgrade helps
+        vip_lvl = self.state.upgrades.get("vip_lounge", 0)
+        if vip_lvl > 0:
+            pass_chance += 0.15 * vip_lvl
+        
+        # Ethics score influences
+        if self.state.ethics_score > 70:
+            pass_chance += 0.15
+        elif self.state.ethics_score < 40:
+            pass_chance -= 0.15
+
+        pass_chance = max(0.1, min(0.95, pass_chance))
+        
+        passed = random.random() < pass_chance
+        
+        if passed:
+            print("\n✓ Your club passes with flying colors!")
+            self.state.reputation = min(100, self.state.reputation + 5)
+            self.state.ethics_score = min(100, self.state.ethics_score + 3)
+        else:
+            print("\n✗ The inspector found violations!")
+            fine = max(500, int(random.randint(800, 1500) * (0.9 + intensity * 0.2)))
+            print(f"Fine: ${fine}")
+            print("\n1. Pay the fine")
+            print("2. Contest it (risks reputation)")
+            
+            choice = input("\nYour decision: ").strip()
+            
+            if choice == '1':
+                self.state.money -= fine
+                self.state.reputation = max(0, self.state.reputation - 3)
+                print("\n✓ Fine paid. Work on improvements.")
+            elif choice == '2':
+                contest_success = max(0.15, min(0.5, 0.35 - (intensity - 1.0) * 0.1))
+                if random.random() < contest_success:
+                    print("\n✓ You successfully contested! No fine.")
+                    self.state.ethics_score = min(100, self.state.ethics_score + 5)
+                else:
+                    self.state.money -= int(fine * 1.5)
+                    self.state.reputation = max(0, self.state.reputation - 8)
+                    print("\n✗ Contest failed. Fine increased and reputation damaged.")
+        
+        input("\nPress Enter to continue...")
+    
+    def event_media_coverage(self, context: Dict):
+        """Media wants to cover your club."""
+        intensity = context.get("intensity", 1.0)
+        severity = context.get("severity", "medium")
+        print("\n📰 --- EVENT: MEDIA COVERAGE --- 📰")
+        print("A local media outlet wants to feature your club!")
+        print(f"Media interest level: {severity.capitalize()}.")
+        
+        print("\n1. Accept interview (exposure, but reveals details)")
+        print("2. Decline politely")
+        exclusive_cost = max(300, int(500 * (0.9 + 0.1 * intensity)))
+        print(f"3. Offer exclusive VIP night for journalists (costs ${exclusive_cost})")
+        
+        choice = input("\nYour decision: ").strip()
+        
+        if choice == '1':
+            rep_gain = max(5, int(random.randint(8, 15) * (0.9 + 0.15 * intensity)))
+            self.state.reputation = min(100, self.state.reputation + rep_gain)
+            print(f"\n✓ Great coverage! Reputation +{rep_gain}")
+            
+            # Chance of ethics scrutiny
+            if self.state.ethics_score < 50:
+                print("⚠️ However, some ethical concerns were raised...")
+                self.state.ethics_score = max(0, self.state.ethics_score - 5)
+        elif choice == '2':
+            print("\n✓ You maintain privacy.")
+        elif choice == '3':
+            if self.state.money >= exclusive_cost:
+                self.state.money -= exclusive_cost
+                rep_gain = max(8, int(random.randint(12, 20) * (0.95 + 0.1 * intensity)))
+                ethics_gain = random.randint(4, 6)
+                self.state.reputation = min(100, self.state.reputation + rep_gain)
+                self.state.ethics_score = min(100, self.state.ethics_score + ethics_gain)
+                print(f"\n✓ Exclusive event was a hit! Reputation +{rep_gain}")
+            else:
+                print("\n✗ Not enough money for exclusive event.")
+        
+        input("\nPress Enter to continue...")
+    
+    def event_performer_breakthrough(self, context: Dict):
+        """One of your performers has a major breakthrough."""
+        if not self.state.performers:
+            return
+        
+        print("\n⭐ --- EVENT: PERFORMER BREAKTHROUGH --- ⭐")
+        target = random.choice(self.state.performers)
+        perf = Performer(**target)
+        intensity = context.get("intensity", 1.0)
+        severity = context.get("severity", "medium")
+        
+        print(f"{perf.name} has achieved a creative breakthrough!")
+        print(f"They've developed a new signature style ({severity} impact).")
+        
+        skill_gain = 1
+        loyalty_gain = 1
+        if intensity > 1.1:
+            skill_gain = 3
+            loyalty_gain = 2
+        elif intensity > 0.95:
+            skill_gain = 2
+            loyalty_gain = 2
+        perf.skill = min(10, perf.skill + skill_gain)
+        perf.loyalty = min(10, perf.loyalty + loyalty_gain)
+        self.state.relationships[perf.name] = min(10, self.state.relationships.get(perf.name, 5) + loyalty_gain)
+        
+        idx = self.state.performers.index(target)
+        self.state.performers[idx] = asdict(perf)
+        
+        self.state.reputation = min(100, self.state.reputation + 5 + max(0, skill_gain - 2))
+        
+        print(f"\n✓ {perf.name}'s skill increased to {perf.skill}/10!")
+        print("Their loyalty and your relationship also improved.")
+        print("Club reputation has grown from their innovation!")
+        
+        input("\nPress Enter to continue...")
+    
+    def event_rival_club(self, context: Dict):
+>>>>>>> bdced82 (Add automation manager system)
         """Rival club tries to poach performers"""
         if not self.state.performers:
             return
@@ -552,18 +1344,21 @@ class ClubManager:
         print("\n🎯 --- EVENT: RIVAL CLUB --- 🎯")
         target = random.choice(self.state.performers)
         perf = Performer(**target)
+        intensity = context.get("intensity", 1.0)
+        severity = context.get("severity", "medium")
+        raise_amount = max(120, int(random.randint(150, 280) * intensity))
         
         print(f"A rival club is trying to poach {perf.name}!")
-        print(f"They're offering ${perf.salary + 200}/day.")
+        print(f"They're offering ${perf.salary + raise_amount}/day ({severity} pressure).")
         
-        print(f"\n1. Match their offer (+${200}/day salary)")
+        print(f"\n1. Match their offer (+${raise_amount}/day salary)")
         print("2. Let them go (lose performer)")
         print("3. Appeal to loyalty (requires relationship > 7)")
         
         choice = input("\nYour decision: ").strip()
         
         if choice == '1':
-            perf.salary += 200
+            perf.salary += raise_amount
             idx = self.state.performers.index(target)
             self.state.performers[idx] = asdict(perf)
             print(f"\n✓ {perf.name} stays! Salary increased.")
@@ -572,10 +1367,14 @@ class ClubManager:
             del self.state.relationships[perf.name]
             print(f"\n✗ {perf.name} has left for the rival club.")
         elif choice == '3':
-            if self.state.relationships[perf.name] > 7:
-                perf.loyalty = min(10, perf.loyalty + 2)
+            loyalty_threshold = 7 + (1 if intensity > 1.1 else 0)
+            loyalty_gain = 2 if intensity < 1.05 else 1
+            current_rel = self.state.relationships.get(perf.name, 0)
+            if current_rel > loyalty_threshold:
+                perf.loyalty = min(10, perf.loyalty + loyalty_gain)
                 idx = self.state.performers.index(target)
                 self.state.performers[idx] = asdict(perf)
+                self.state.relationships[perf.name] = min(10, current_rel + loyalty_gain)
                 print(f"\n✓ {perf.name} chooses to stay loyal to you!")
                 self.state.ethics_score = min(100, self.state.ethics_score + 3)
             else:
@@ -585,7 +1384,7 @@ class ClubManager:
         
         input("\nPress Enter to continue...")
     
-    def event_performer_conflict(self):
+    def event_performer_conflict(self, context: Dict):
         """Two performers have a conflict"""
         if len(self.state.performers) < 2:
             return
@@ -594,9 +1393,13 @@ class ClubManager:
         perf1_data, perf2_data = random.sample(self.state.performers, 2)
         perf1 = Performer(**perf1_data)
         perf2 = Performer(**perf2_data)
+        intensity = context.get("intensity", 1.0)
+        severity = context.get("severity", "medium")
+        penalty = 2 if intensity > 0.95 else 1
+        reward = penalty + (1 if intensity > 1.1 else 0)
         
         print(f"{perf1.name} and {perf2.name} are having a heated argument!")
-        print("The conflict is affecting the club atmosphere.")
+        print(f"The conflict is affecting the club atmosphere ({severity} severity).")
         
         print("\n1. Side with " + perf1.name)
         print("2. Side with " + perf2.name)
@@ -607,22 +1410,23 @@ class ClubManager:
         
         if choice == '1':
             self.state.relationships[perf1.name] = min(10, 
-                self.state.relationships[perf1.name] + 2)
+                self.state.relationships[perf1.name] + reward)
             self.state.relationships[perf2.name] = max(1, 
-                self.state.relationships[perf2.name] - 2)
+                self.state.relationships[perf2.name] - penalty)
             print(f"\n✓ You sided with {perf1.name}. {perf2.name} is upset.")
         elif choice == '2':
             self.state.relationships[perf2.name] = min(10, 
-                self.state.relationships[perf2.name] + 2)
+                self.state.relationships[perf2.name] + reward)
             self.state.relationships[perf1.name] = max(1, 
-                self.state.relationships[perf1.name] - 2)
+                self.state.relationships[perf1.name] - penalty)
             print(f"\n✓ You sided with {perf2.name}. {perf1.name} is upset.")
         elif choice == '3':
             self.state.relationships[perf1.name] = min(10, 
-                self.state.relationships[perf1.name] + 1)
+                self.state.relationships[perf1.name] + max(1, reward - 1))
             self.state.relationships[perf2.name] = min(10, 
-                self.state.relationships[perf2.name] + 1)
-            self.state.ethics_score = min(100, self.state.ethics_score + 5)
+                self.state.relationships[perf2.name] + max(1, reward - 1))
+            ethics_gain = 5 + (1 if intensity < 0.9 else 0)
+            self.state.ethics_score = min(100, self.state.ethics_score + ethics_gain)
             print("\n✓ You successfully mediated. Both appreciate your fairness.")
         elif choice == '4':
             self.state.performers.remove(perf1_data)
@@ -704,6 +1508,195 @@ class ClubManager:
         
         input("\nPress Enter to continue...")
     
+    def automation_menu(self):
+        """Automation management menu"""
+        try:
+            from auto_manager import create_auto_manager, AutomationLevel, AutomationStrategy
+        except ImportError:
+            print("\n✗ Automation module not available!")
+            input("Press Enter to continue...")
+            return
+        
+        if not hasattr(self, 'auto_manager') or self.auto_manager is None:
+            print("\n--- AUTOMATION SETUP ---")
+            print("Available automation levels:")
+            levels = list(AutomationLevel)
+            for i, level in enumerate(levels, 1):
+                descriptions = {
+                    AutomationLevel.NONE: "Manual control only",
+                    AutomationLevel.BASIC: "Basic staff management",
+                    AutomationLevel.MODERATE: "Staff + recruitment + upgrades",
+                    AutomationLevel.ADVANCED: "All features + strategic decisions",
+                    AutomationLevel.FULL: "Complete automation"
+                }
+                print(f"  {i}. {level.value.title()} - {descriptions[level]}")
+            
+            while True:
+                try:
+                    choice = int(input("\nSelect automation level (1-5): "))
+                    if 1 <= choice <= len(levels):
+                        selected_level = levels[choice - 1]
+                        break
+                    else:
+                        print("Invalid choice.")
+                except ValueError:
+                    print("Please enter a number.")
+            
+            print("\nAvailable strategies:")
+            strategies = list(AutomationStrategy)
+            for i, strategy in enumerate(strategies, 1):
+                descriptions = {
+                    AutomationStrategy.BALANCED: "Balance all aspects",
+                    AutomationStrategy.PROFIT: "Focus on money generation",
+                    AutomationStrategy.ETHICS: "Prioritize ethical choices",
+                    AutomationStrategy.GROWTH: "Focus on expansion",
+                    AutomationStrategy.REPUTATION: "Maximize reputation"
+                }
+                print(f"  {i}. {strategy.value.title()} - {descriptions[strategy]}")
+            
+            while True:
+                try:
+                    choice = int(input("\nSelect strategy (1-5): "))
+                    if 1 <= choice <= len(strategies):
+                        selected_strategy = strategies[choice - 1]
+                        break
+                    else:
+                        print("Invalid choice.")
+                except ValueError:
+                    print("Please enter a number.")
+            
+            self.auto_manager = create_auto_manager(
+                club_manager=self,
+                level_name=selected_level.value,
+                strategy_name=selected_strategy.value
+            )
+            print(f"\n✓ Automation configured: {selected_level.value} level, {selected_strategy.value} strategy")
+        
+        while True:
+            print("\n--- AUTOMATION MANAGER ---")
+            print(f"Current Level: {self.auto_manager.automation_level.value}")
+            print(f"Current Strategy: {self.auto_manager.strategy.value}")
+            print(f"Decisions Made: {self.auto_manager.auto_decisions}")
+            
+            print("\n1. Run Single Automated Turn")
+            print("2. Run Multiple Turns")
+            print("3. Change Automation Level")
+            print("4. Change Strategy")
+            print("5. View Automation Report")
+            print("6. Disable Automation")
+            print("7. Back to Main Menu")
+            
+            choice = input("\nChoose action: ").strip()
+            
+            if choice == '1':
+                print("\nRunning automated turn...")
+                actions = self.auto_manager.auto_manage_turn()
+                
+                print("\n--- AUTOMATION RESULTS ---")
+                if actions["staff_actions"]:
+                    print("Staff Actions:")
+                    for action in actions["staff_actions"]:
+                        print(f"  • {action}")
+                
+                if actions["recruitment"]:
+                    print("Recruitment:")
+                    for action in actions["recruitment"]:
+                        print(f"  • {action}")
+                
+                if actions["upgrades"]:
+                    print("Upgrades:")
+                    for action in actions["upgrades"]:
+                        print(f"  • {action}")
+                
+                if actions["strategic_decisions"]:
+                    print("Strategic Decisions:")
+                    for action in actions["strategic_decisions"]:
+                        print(f"  • {action}")
+                
+                if actions["decisions_made"] == 0:
+                    print("No automated actions taken this turn.")
+                else:
+                    print(f"\nTotal decisions made: {actions['decisions_made']}")
+                
+                input("\nPress Enter to continue...")
+            
+            elif choice == '2':
+                while True:
+                    try:
+                        turns = int(input("How many turns to run? (1-20): "))
+                        if 1 <= turns <= 20:
+                            break
+                        else:
+                            print("Please enter 1-20.")
+                    except ValueError:
+                        print("Please enter a number.")
+                
+                print(f"\nRunning {turns} automated turns...")
+                results = self.auto_manager.simulate_multiple_turns(turns)
+                
+                print("\n--- SIMULATION RESULTS ---")
+                for result in results:
+                    print(f"Turn {result['turn']}: ${result['money']} | "
+                          f"Rep: {result['reputation']} | "
+                          f"Staff: {result['performers']} | "
+                          f"Actions: {result['actions']['decisions_made']}")
+                
+                input("\nPress Enter to continue...")
+            
+            elif choice == '3':
+                levels = list(AutomationLevel)
+                print("\nSelect new automation level:")
+                for i, level in enumerate(levels, 1):
+                    print(f"  {i}. {level.value.title()}")
+                
+                try:
+                    choice_idx = int(input("Choice: ")) - 1
+                    if 0 <= choice_idx < len(levels):
+                        self.auto_manager.set_automation_level(levels[choice_idx])
+                        print(f"✓ Automation level changed to {levels[choice_idx].value}")
+                    else:
+                        print("Invalid choice.")
+                except ValueError:
+                    print("Invalid input.")
+                
+                input("Press Enter to continue...")
+            
+            elif choice == '4':
+                strategies = list(AutomationStrategy)
+                print("\nSelect new strategy:")
+                for i, strategy in enumerate(strategies, 1):
+                    print(f"  {i}. {strategy.value.title()}")
+                
+                try:
+                    choice_idx = int(input("Choice: ")) - 1
+                    if 0 <= choice_idx < len(strategies):
+                        self.auto_manager.set_strategy(strategies[choice_idx])
+                        print(f"✓ Strategy changed to {strategies[choice_idx].value}")
+                    else:
+                        print("Invalid choice.")
+                except ValueError:
+                    print("Invalid input.")
+                
+                input("Press Enter to continue...")
+            
+            elif choice == '5':
+                report = self.auto_manager.get_automation_report()
+                print("\n--- AUTOMATION REPORT ---")
+                for key, value in report.items():
+                    print(f"{key.replace('_', ' ').title()}: {value}")
+                
+                input("\nPress Enter to continue...")
+            
+            elif choice == '6':
+                confirm = input("Disable automation? (y/n): ").strip().lower()
+                if confirm == 'y':
+                    self.auto_manager = None
+                    print("✓ Automation disabled.")
+                    return
+            
+            elif choice == '7':
+                return
+    
     def main_menu(self):
         """Display main game menu"""
         while self.running:
@@ -712,10 +1705,19 @@ class ClubManager:
             print("1. Recruit Performer")
             print("2. Manage Performers")
             print("3. Run Club Night")
+<<<<<<< HEAD
             print("4. Advance Day")
             print("5. View Statistics")
             print("6. Save Game")
             print("7. Exit Game")
+=======
+            print("4. Manage Upgrades")
+            print("5. Advance Day")
+            print("6. View Statistics")
+            print("7. Automation Manager")
+            print("8. Save Game")
+            print("9. Exit Game")
+>>>>>>> bdced82 (Add automation manager system)
             
             choice = input("\nChoose an action: ").strip()
             
@@ -729,9 +1731,17 @@ class ClubManager:
                 self.advance_day()
             elif choice == '5':
                 self.view_stats()
+<<<<<<< HEAD
             elif choice == '6':
                 self.save_game()
             elif choice == '7':
+=======
+            elif choice == '7':
+                self.automation_menu()
+            elif choice == '8':
+                self.save_game()
+            elif choice == '9':
+>>>>>>> bdced82 (Add automation manager system)
                 save = input("\nSave before exiting? (y/n): ").strip().lower()
                 if save == 'y':
                     self.save_game()

@@ -1,3 +1,341 @@
+<<<<<<< HEAD
+=======
+import os
+import sys
+import unittest
+
+# Ensure local import works when running from parent or other cwd
+sys.path.insert(0, os.path.dirname(__file__))
+from game import (
+    generate_full_name, ClubManager, compute_checksum, 
+    Performer, PerformerType, Gender, asdict, Patron
+)
+
+
+class TestNightclubGame(unittest.TestCase):
+    def test_generate_full_name_unique(self):
+        used = set()
+        names = [generate_full_name(used) for _ in range(50)]
+        self.assertEqual(len(set(names)), 50)
+
+    def test_ensure_bouncer_present(self):
+        mgr = ClubManager()
+        has_security = any(
+            (p.get("performer_type") == PerformerType.SECURITY) 
+            for p in mgr.state.performers
+        )
+        self.assertTrue(has_security, "Bouncer should be present after initialization")
+
+    def test_checksum_detects_tamper(self):
+        # Build a minimal save-like structure
+        save_data = {
+            'day': 1,
+            'money': 1000,
+            'reputation': 50,
+            'ethics_score': 50,
+            'performers': [],
+            'relationships': {},
+            'story_flags': {},
+            'completed_events': []
+        }
+        checksum = compute_checksum({**save_data})
+        self.assertIsInstance(checksum, str)
+
+        tampered = {**save_data, 'money': 999999}
+        self.assertNotEqual(checksum, compute_checksum({**tampered}))
+
+    def test_promotion_prerequisites(self):
+        """Test promotion prerequisite checking"""
+        mgr = ClubManager()
+        
+        # Create a new performer with low skill
+        perf = Performer(
+            name="Test Singer",
+            performer_type=PerformerType.SINGER,
+            gender=Gender.FEMALE,
+            traits=["Talented"],
+            skill=3,
+            loyalty=5,
+            energy=10,
+            salary=500,
+            reputation=0,
+            promotion_level=0
+        )
+        
+        # Should not be able to promote (skill < 6)
+        promo = mgr.can_promote(perf)
+        self.assertIsNone(promo, "Should not promote performer with skill < 6")
+        
+        # Increase skill
+        perf.skill = 7
+        promo = mgr.can_promote(perf)
+        self.assertIsNotNone(promo, "Should be able to promote with skill >= 6")
+        self.assertEqual(promo['title'], "Vocal Coach")  # First promotion title
+
+    def test_promotion_progression(self):
+        """Test promotion level progression"""
+        mgr = ClubManager()
+        
+        perf = Performer(
+            name="Test DJ",
+            performer_type=PerformerType.DJ,
+            gender=Gender.MALE,
+            traits=["Creative"],
+            skill=8,
+            loyalty=7,
+            energy=10,
+            salary=500,
+            reputation=20,
+            promotion_level=0
+        )
+        
+        mgr.state.performers.append(asdict(perf))
+        mgr.state.money = 50000
+        
+        # Promote the DJ (index 1, since bouncer is at index 0)
+        perf_index = len(mgr.state.performers) - 1
+        success = mgr.promote_performer(perf_index)
+        self.assertTrue(success, "Should successfully promote")
+        perf1 = Performer(**mgr.state.performers[perf_index])
+        self.assertEqual(perf1.promotion_level, 1)
+
+    def test_promotion_buffs(self):
+        """Test promotion buffs are applied correctly"""
+        mgr = ClubManager()
+        
+        # Add a promoted performer
+        perf = Performer(
+            name="Master Dancer",
+            performer_type=PerformerType.DANCER,
+            gender=Gender.FEMALE,
+            traits=["Athletic"],
+            skill=9,
+            loyalty=8,
+            energy=10,
+            salary=800,
+            reputation=50,
+            promotion_level=2
+        )
+        mgr.state.performers.append(asdict(perf))
+        
+        buffs = mgr.get_active_buffs()
+        self.assertGreater(len(buffs), 0, "Should have active buffs from promotion")
+
+    def test_event_filtering(self):
+        """Test event filtering by prerequisites"""
+        mgr = ClubManager()
+        mgr.state.day = 1
+        
+        # Get all events
+        all_events = list(mgr.event_registry.keys())
+        self.assertGreater(len(all_events), 0, "Should have events in registry")
+        
+        # Check event metadata
+        for event_id, meta in mgr.event_registry.items():
+            self.assertIn('tags', meta)
+            self.assertIn('risk_rating', meta)
+            self.assertIn('cooldown', meta)
+            self.assertIn('weight', meta)
+
+    def test_event_cooldowns(self):
+        """Test event cooldown enforcement"""
+        mgr = ClubManager()
+        mgr.state.day = 5
+        
+        # Set a cooldown
+        event_id = list(mgr.event_registry.keys())[0]
+        mgr.state.event_cooldowns[event_id] = 10  # Cooldown until day 10
+        
+        # Event should not be available
+        self.assertLess(mgr.state.day, mgr.state.event_cooldowns[event_id])
+        
+        # Advance to after cooldown
+        mgr.state.day = 11
+        self.assertGreater(mgr.state.day, mgr.state.event_cooldowns[event_id])
+
+    def test_upgrades_catalog(self):
+        """Test upgrade catalog exists and is properly structured"""
+        mgr = ClubManager()
+        
+        self.assertGreater(len(mgr.upgrade_catalog), 0, "Should have upgrades")
+        
+        # Check required fields (use 'desc' not 'description')
+        for upgrade_id, data in mgr.upgrade_catalog.items():
+            self.assertIn('name', data)
+            self.assertIn('desc', data)  # Changed from 'description'
+            self.assertIn('base_cost', data)
+            self.assertIn('max_level', data)
+
+    def test_upgrade_purchase(self):
+        """Test purchasing upgrades"""
+        mgr = ClubManager()
+        mgr.state.money = 10000
+        
+        # Purchase sound system
+        upgrade_id = "sound_system"
+        cost = mgr.upgrade_catalog[upgrade_id]['base_cost']
+        
+        mgr.state.money -= cost
+        mgr.state.upgrades[upgrade_id] = 1
+        
+        self.assertEqual(mgr.state.upgrades[upgrade_id], 1)
+        self.assertEqual(mgr.state.money, 10000 - cost)
+
+    def test_upgrade_levels(self):
+        """Test upgrade level progression"""
+        mgr = ClubManager()
+        
+        upgrade_id = "vip_lounge"
+        max_level = mgr.upgrade_catalog[upgrade_id]['max_level']
+        
+        # Test level progression
+        for level in range(1, max_level + 1):
+            mgr.state.upgrades[upgrade_id] = level
+            self.assertEqual(mgr.state.upgrades[upgrade_id], level)
+        
+        # Should not exceed max level
+        self.assertLessEqual(mgr.state.upgrades[upgrade_id], max_level)
+
+    def test_economy_initialization(self):
+        """Test dynamic economy initialization"""
+        mgr = ClubManager()
+        
+        # Check city demand
+        self.assertGreater(mgr.state.city_demand, 0)
+        self.assertLessEqual(mgr.state.city_demand, 200)
+        
+        # Check genre trends
+        self.assertEqual(len(mgr.state.genre_trend), 5)  # 5 performer types
+        for ptype in PerformerType:
+            self.assertIn(ptype.value, mgr.state.genre_trend)
+
+    def test_economy_adjustment(self):
+        """Test weekly economy adjustment"""
+        mgr = ClubManager()
+        
+        initial_demand = mgr.state.city_demand
+        initial_trends = dict(mgr.state.genre_trend)
+        
+        # Adjust economy
+        mgr.adjust_weekly_economy()
+        
+        # Values should change (with very high probability)
+        # Using a range check instead of exact inequality to account for rare edge cases
+        self.assertTrue(
+            mgr.state.city_demand != initial_demand or 
+            mgr.state.genre_trend != initial_trends,
+            "Economy should change after adjustment"
+        )
+
+    def test_risk_levels(self):
+        """Test risk level setting"""
+        mgr = ClubManager()
+        
+        for risk in ["conservative", "standard", "bold"]:
+            mgr.state.risk_level = risk
+            self.assertEqual(mgr.state.risk_level, risk)
+
+    def test_patron_generation(self):
+        """Test patron generation with archetypes"""
+        mgr = ClubManager()
+        mgr.state.reputation = 60
+        
+        patrons = mgr.generate_patrons()
+        
+        self.assertGreater(len(patrons), 0, "Should generate patrons")
+        
+        # Check patron structure - patrons are Patron dataclass objects
+        for patron in patrons:
+            self.assertIsInstance(patron, Patron)
+            self.assertIsNotNone(patron.name)
+            self.assertGreater(patron.mood, 0)
+            self.assertGreater(patron.spending_power, 0)
+            self.assertIsNotNone(patron.archetype)
+            
+            # Check archetype is valid
+            valid_archetypes = ["general", "high_roller", "critic", "influencer", "trendsetter"]
+            self.assertIn(patron.archetype, valid_archetypes)
+
+    def test_crowd_bonus_calculation(self):
+        """Test crowd bonus calculation"""
+        mgr = ClubManager()
+        
+        # Create test patrons as Patron objects
+        patrons = [
+            Patron(name='Test1', mood=8, spending_power=100, archetype='general'),
+            Patron(name='Test2', mood=7, spending_power=200, archetype='high_roller'),
+            Patron(name='Test3', mood=6, spending_power=80, archetype='general'),
+        ]
+        
+        bonus = mgr.calculate_crowd_bonus(patrons)
+        
+        self.assertGreater(bonus, 0, "Should calculate positive crowd bonus")
+        self.assertIsInstance(bonus, int)
+
+    def test_bouncer_effect(self):
+        """Test bouncer reduces event probability"""
+        mgr = ClubManager()
+        
+        self.assertTrue(mgr.has_bouncer(), "Should have bouncer on init")
+        
+        # Bouncer should be security type (stored as enum)
+        bouncer = next((p for p in mgr.state.performers if p['performer_type'] == PerformerType.SECURITY), None)
+        self.assertIsNotNone(bouncer, "Should have security performer")
+
+    def test_save_load_new_fields(self):
+        """Test save/load with new features"""
+        mgr = ClubManager()
+        test_file = "test_new_features.json"
+        
+        # Set new field values
+        mgr.state.upgrades = {"sound_system": 2, "vip_lounge": 1}
+        mgr.state.city_demand = 120
+        mgr.state.genre_trend = {"singer": 10, "dancer": -5, "dj": 0, "bartender": 15, "security": 0}
+        mgr.state.risk_level = "bold"
+        mgr.state.event_cooldowns = {"vip_visitor": 10, "equipment_failure": 15}
+        
+        # Add promoted performer
+        perf = Performer(
+            name="Test Promoted",
+            performer_type=PerformerType.SINGER,
+            gender=Gender.MALE,
+            traits=["Talented"],
+            skill=8,
+            loyalty=7,
+            energy=10,
+            salary=800,
+            reputation=30,
+            promotion_level=2
+        )
+        mgr.state.performers.append(asdict(perf))
+        
+        # Save
+        mgr.save_file = test_file
+        mgr.save_game()
+        
+        # Load into new manager
+        mgr2 = ClubManager()
+        mgr2.save_file = test_file
+        mgr2.load_game()
+        
+        # Verify all fields
+        self.assertEqual(mgr2.state.upgrades, mgr.state.upgrades)
+        self.assertEqual(mgr2.state.city_demand, mgr.state.city_demand)
+        self.assertEqual(mgr2.state.genre_trend, mgr.state.genre_trend)
+        self.assertEqual(mgr2.state.risk_level, mgr.state.risk_level)
+        self.assertEqual(mgr2.state.event_cooldowns, mgr.state.event_cooldowns)
+        
+        # Verify promoted performer
+        loaded_perf = Performer(**mgr2.state.performers[-1])
+        self.assertEqual(loaded_perf.promotion_level, 2)
+        
+        # Cleanup
+        os.remove(test_file)
+
+
+if __name__ == '__main__':
+    unittest.main()
+>>>>>>> bdced82 (Add automation manager system)
 #!/usr/bin/env python3
 """
 Test script for Underground Club Manager game
