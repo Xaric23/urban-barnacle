@@ -1,14 +1,12 @@
-import { GameState, Performer, SkillCard } from '@/lib/types';
+import { Performer } from '@/lib/types';
 import { SKILL_CARDS } from '@/lib/constants';
 
 interface CardDeckManagerProps {
-  state: GameState;
   performer: Performer;
 }
 
-export default function CardDeckManager({ state, performer }: CardDeckManagerProps) {
+export default function CardDeckManager({ performer }: CardDeckManagerProps) {
   const performerCards = SKILL_CARDS.filter(card => performer.cards.includes(card.id));
-  const availableCards = SKILL_CARDS.filter(card => !performer.cards.includes(card.id));
 
   const getCategoryColor = (category: string): string => {
     const colors: Record<string, string> = {
@@ -38,7 +36,7 @@ export default function CardDeckManager({ state, performer }: CardDeckManagerPro
     <div className="space-y-4">
       {/* Performer's Cards */}
       <div>
-        <h4 className="font-bold mb-3">🎴 {performer.name}'s Card Collection</h4>
+        <h4 className="font-bold mb-3">🎴 {performer.name}&apos;s Card Collection</h4>
         {performerCards.length === 0 ? (
           <div className="text-gray-400 text-sm text-center p-4">
             No cards unlocked yet. Train and perform to earn cards!

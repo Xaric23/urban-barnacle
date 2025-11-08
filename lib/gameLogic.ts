@@ -1,7 +1,7 @@
 // Game Logic and State Management for Underground Club Manager
 
 import { GameState, Performer, PerformerType, Gender, Upgrade, ClothingSlot, Wardrobe, PersonalityArchetype, ThemedNightType, Rumor } from './types';
-import { PERSONALITY_TRAITS, generateFullName, CLOTHING_CATALOG, PERSONALITY_ARCHETYPES, CHEMISTRY_COMPATIBILITY, THEMED_NIGHTS, SKILL_CARDS, STAGE_PROPS, SPECIAL_EFFECTS, RIVAL_CLUBS, CROWD_KINKS } from './constants';
+import { PERSONALITY_TRAITS, generateFullName, CLOTHING_CATALOG, PERSONALITY_ARCHETYPES, CHEMISTRY_COMPATIBILITY, THEMED_NIGHTS, SKILL_CARDS, CROWD_KINKS } from './constants';
 
 export function createInitialGameState(): GameState {
   return {
@@ -37,7 +37,11 @@ export function createInitialGameState(): GameState {
     stageProps: [],
     activeEffects: [],
     maintenanceCost: 0,
-    rivalClubs: [...RIVAL_CLUBS],
+    rivalClubs: [
+      { name: "The Velvet Underground", strength: 60, aggression: 50, lastSabotage: 0 },
+      { name: "Crimson Palace", strength: 70, aggression: 70, lastSabotage: 0 },
+      { name: "Midnight Oasis", strength: 50, aggression: 30, lastSabotage: 0 },
+    ],
     fame: 0,
     camShowBranch: false,
     vipWebsite: false,
@@ -96,7 +100,11 @@ export function loadGameState(): GameState | null {
         state.maintenanceCost = 0;
       }
       if (!state.rivalClubs) {
-        state.rivalClubs = [...RIVAL_CLUBS];
+        state.rivalClubs = [
+          { name: "The Velvet Underground", strength: 60, aggression: 50, lastSabotage: 0 },
+          { name: "Crimson Palace", strength: 70, aggression: 70, lastSabotage: 0 },
+          { name: "Midnight Oasis", strength: 50, aggression: 30, lastSabotage: 0 },
+        ];
       }
       if (state.fame === undefined) {
         state.fame = 0;

@@ -8,7 +8,6 @@ interface DramaManagerProps {
 }
 
 export default function DramaManager({ state, onUpdate }: DramaManagerProps) {
-  const [selectedRumor, setSelectedRumor] = useState<Rumor | null>(null);
   const [message, setMessage] = useState<string>('');
 
   const handleResolve = (rumor: Rumor, type: "diplomacy" | "bribe" | "ignore") => {
@@ -16,7 +15,6 @@ export default function DramaManager({ state, onUpdate }: DramaManagerProps) {
     const result = resolveRumor(newState, rumor, type);
     setMessage(result.message);
     onUpdate(newState);
-    setSelectedRumor(null);
     
     setTimeout(() => setMessage(''), 3000);
   };

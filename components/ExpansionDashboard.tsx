@@ -76,7 +76,7 @@ export default function ExpansionDashboard({ state, onUpdate }: ExpansionDashboa
           <div className="p-3 bg-yellow-900/30 rounded border border-yellow-500">
             <div className="font-bold text-yellow-300">🎬 Celebrity Cameos Available!</div>
             <div className="text-sm text-gray-300 mt-1">
-              High fame attracts celebrity guests who boost your club's reputation
+              High fame attracts celebrity guests who boost your club&apos;s reputation
             </div>
           </div>
         )}

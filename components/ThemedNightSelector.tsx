@@ -1,6 +1,6 @@
-import { GameState, ThemedNightType, PersonalityArchetype } from '@/lib/types';
+import { GameState, ThemedNightType } from '@/lib/types';
 import { THEMED_NIGHTS } from '@/lib/constants';
-import { calculateThemedNightBonus, getChemistryIcon } from '@/lib/gameLogic';
+import { calculateThemedNightBonus } from '@/lib/gameLogic';
 
 interface ThemedNightSelectorProps {
   state: GameState;

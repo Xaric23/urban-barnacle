@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { GameState } from '@/lib/types';
-import { performWork, calculateTraitBonus, calculateTips, calculateAdultServiceIncome } from '@/lib/gameLogic';
+import { GameState, ThemedNightType } from '@/lib/types';
+import { performWork, calculateTraitBonus, calculateTips, calculateAdultServiceIncome, calculateThemedNightBonus, updateFame } from '@/lib/gameLogic';
+import ThemedNightSelector from './ThemedNightSelector';
 
 interface RunClubNightProps {
   state: GameState;
@@ -9,6 +10,7 @@ interface RunClubNightProps {
 }
 
 export default function RunClubNight({ state, onUpdate, onBack }: RunClubNightProps) {
+  const [selectedThemedNight, setSelectedThemedNight] = useState<ThemedNightType | null>(null);
   const [results, setResults] = useState<{
     performers: { name: string; income: number; tips: number; adultBonus: number; message: string; adultMessages: string[] }[];
     totalIncome: number;
@@ -16,6 +18,7 @@ export default function RunClubNight({ state, onUpdate, onBack }: RunClubNightPr
     totalAdultBonus: number;
     totalExpenses: number;
     netProfit: number;
+    themedNightBonus?: string;
   } | null>(null);
 
   const handleRunNight = () => {
@@ -85,14 +88,43 @@ export default function RunClubNight({ state, onUpdate, onBack }: RunClubNightPr
     });
 
     const totalRevenue = totalIncome + totalTips + totalAdultBonus;
-    const netProfit = totalRevenue - totalExpenses;
+    
+    // Apply themed night bonus
+    let themedNightBonusMessage = '';
+    let themedNightMultiplier = 1;
+    if (selectedThemedNight) {
+      const workingPerformers = newState.performers.filter(p => p.energy >= 2);
+      const themedBonus = calculateThemedNightBonus(workingPerformers, selectedThemedNight);
+      if (themedBonus.bonus > 1) {
+        themedNightMultiplier = themedBonus.bonus;
+        themedNightBonusMessage = themedBonus.message;
+      }
+    }
+    
+    const finalRevenue = Math.floor(totalRevenue * themedNightMultiplier);
+    const netProfit = finalRevenue - totalExpenses;
     newState.money += netProfit;
+
+    // Update fame based on income
+    updateFame(newState, finalRevenue);
+    
+    // Stage props and effects bonus
+    const stageBonus = newState.stageProps.reduce((sum, prop) => sum + prop.appeal, 0);
+    const effectsBonus = newState.activeEffects.length * 5; // 5% bonus per effect
+    const stageBonusPct = (stageBonus + effectsBonus) / 100;
+    const stageBonusMoney = Math.floor(finalRevenue * stageBonusPct);
+    if (stageBonusMoney > 0) {
+      newState.money += stageBonusMoney;
+    }
 
     // Reputation changes
     if (netProfit > 0) {
       const repGain = Math.min(5, Math.floor(netProfit / 200));
       newState.reputation = Math.min(100, newState.reputation + repGain);
     }
+    
+    // Reset used cards
+    newState.usedCardsThisNight = [];
 
     onUpdate(newState);
     setResults({
@@ -101,7 +133,8 @@ export default function RunClubNight({ state, onUpdate, onBack }: RunClubNightPr
       totalTips,
       totalAdultBonus,
       totalExpenses,
-      netProfit
+      netProfit: netProfit + stageBonusMoney,
+      themedNightBonus: themedNightBonusMessage || undefined
     });
   };
 
@@ -149,6 +182,12 @@ export default function RunClubNight({ state, onUpdate, onBack }: RunClubNightPr
                 <span className="font-bold text-pink-400">${results.totalAdultBonus}</span>
               </div>
             )}
+            {results.themedNightBonus && (
+              <div className="flex justify-between">
+                <span>🎭 Themed Night:</span>
+                <span className="font-bold text-purple-400">Bonus Applied!</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span>Total Expenses:</span>
               <span className="font-bold text-red-400">${results.totalExpenses}</span>
@@ -162,6 +201,13 @@ export default function RunClubNight({ state, onUpdate, onBack }: RunClubNightPr
             </div>
           </div>
         </div>
+        
+        {results.themedNightBonus && (
+          <div className="bg-purple-900/30 border border-purple-500 rounded-lg p-4">
+            <div className="font-bold text-purple-300 mb-1">🎭 Themed Night Success!</div>
+            <div className="text-sm text-gray-300">{results.themedNightBonus}</div>
+          </div>
+        )}
         
         <button
           onClick={() => {
@@ -179,6 +225,13 @@ export default function RunClubNight({ state, onUpdate, onBack }: RunClubNightPr
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold mb-4">Run Club Night</h2>
+      
+      {/* Themed Night Selector */}
+      <ThemedNightSelector
+        state={state}
+        selectedNight={selectedThemedNight}
+        onSelect={setSelectedThemedNight}
+      />
       
       <div className="bg-gray-700 rounded-lg p-6">
         <h3 className="text-lg font-bold mb-3">Tonight&apos;s Lineup</h3>

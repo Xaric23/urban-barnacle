@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { GameState } from '@/lib/types';
-import { trainPerformer, restPerformer } from '@/lib/gameLogic';
+import { trainPerformer, restPerformer, updateChemistryForAllPerformers } from '@/lib/gameLogic';
 import WardrobeManager from './WardrobeManager';
+import ChemistryDisplay from './ChemistryDisplay';
+import CardDeckManager from './CardDeckManager';
 
 interface ManagePerformersProps {
   state: GameState;
@@ -12,6 +14,8 @@ interface ManagePerformersProps {
 export default function ManagePerformers({ state, onUpdate, onBack }: ManagePerformersProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [showWardrobe, setShowWardrobe] = useState(false);
+  const [showChemistry, setShowChemistry] = useState(false);
+  const [showCards, setShowCards] = useState(false);
 
   const handleTrain = (index: number) => {
     const performer = state.performers[index];
@@ -27,6 +31,10 @@ export default function ManagePerformers({ state, onUpdate, onBack }: ManagePerf
       const newState = { ...state };
       newState.money -= cost;
       newState.performers[index] = { ...performer };
+      
+      // Update chemistry after training
+      updateChemistryForAllPerformers(newState.performers);
+      
       onUpdate(newState);
       alert(result.message);
     } else {
@@ -110,6 +118,36 @@ export default function ManagePerformers({ state, onUpdate, onBack }: ManagePerf
       );
     }
 
+    if (showChemistry) {
+      return (
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold mb-4">Chemistry: {performer.name}</h2>
+          <ChemistryDisplay performer={performer} allPerformers={state.performers} />
+          <button
+            onClick={() => setShowChemistry(false)}
+            className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition"
+          >
+            ← Back to Management
+          </button>
+        </div>
+      );
+    }
+
+    if (showCards) {
+      return (
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold mb-4">Skill Cards: {performer.name}</h2>
+          <CardDeckManager performer={performer} />
+          <button
+            onClick={() => setShowCards(false)}
+            className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition"
+          >
+            ← Back to Management
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-4">
         <h2 className="text-2xl font-bold mb-4">Managing {performer.name}</h2>
@@ -119,6 +157,7 @@ export default function ManagePerformers({ state, onUpdate, onBack }: ManagePerf
             <div>
               <h3 className="text-xl font-bold">{performer.name}</h3>
               <p className="text-gray-400">{performer.gender.toUpperCase()} • {performer.performerType.toUpperCase()}</p>
+              <p className="text-purple-300 text-sm capitalize">✨ {performer.personalityArchetype}</p>
             </div>
           </div>
           
@@ -232,6 +271,18 @@ export default function ManagePerformers({ state, onUpdate, onBack }: ManagePerf
             className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition"
           >
             👔 Wardrobe
+          </button>
+          <button
+            onClick={() => setShowChemistry(true)}
+            className="bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-4 rounded-lg transition"
+          >
+            💕 Chemistry
+          </button>
+          <button
+            onClick={() => setShowCards(true)}
+            className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-lg transition"
+          >
+            🎴 Cards
           </button>
         </div>
         

@@ -13,7 +13,7 @@ import StageCustomizer from '@/components/StageCustomizer';
 import ExpansionDashboard from '@/components/ExpansionDashboard';
 import CrowdMoodDashboard from '@/components/CrowdMoodDashboard';
 import { GameState } from '@/lib/types';
-import { createInitialGameState, saveGameState, loadGameState, advanceDay, updateChemistryForAllPerformers, updateCrowdMood, checkForViralTrend, applySeasonalTrends, generateRumor, checkForSabotage, calculateExpansionIncome, updateFame, checkForCelebrityCameo } from '@/lib/gameLogic';
+import { createInitialGameState, saveGameState, loadGameState, advanceDay, updateChemistryForAllPerformers, updateCrowdMood, checkForViralTrend, applySeasonalTrends, generateRumor, checkForSabotage, calculateExpansionIncome, checkForCelebrityCameo } from '@/lib/gameLogic';
 
 type GameView = 'menu' | 'recruit' | 'manage' | 'run' | 'stats' | 'upgrades' | 'drama' | 'stage' | 'expansions' | 'trends';
 
