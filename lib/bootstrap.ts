@@ -101,7 +101,20 @@ export async function bootstrapGame(
   });
   await delay(300);
 
-  const validation = await verifySecureSave(savedData);
+  // Try async verification with timeout, fallback to sync if it fails
+  let validation: { valid: boolean; reason?: string };
+  try {
+    validation = await Promise.race([
+      verifySecureSave(savedData),
+      new Promise<{ valid: boolean; reason: string }>((_, reject) => 
+        setTimeout(() => reject(new Error('Verification timeout')), 5000)
+      )
+    ]);
+  } catch (error) {
+    console.warn('Async verification failed, falling back to sync:', error);
+    const { verifySecureSaveSync } = await import('./antiCheat');
+    validation = verifySecureSaveSync(savedData);
+  }
   
   if (!validation.valid) {
     // Save is corrupted or tampered with
@@ -219,8 +232,21 @@ export async function saveToStorage(state: GameState): Promise<void> {
     return;
   }
 
-  const secureSave = await createSecureSave(state);
-  localStorage.setItem('clubManagerSave', JSON.stringify(secureSave));
+  try {
+    // Try async save with timeout
+    const secureSave = await Promise.race([
+      createSecureSave(state),
+      new Promise<SecureSave>((_, reject) => 
+        setTimeout(() => reject(new Error('Save timeout')), 5000)
+      )
+    ]);
+    localStorage.setItem('clubManagerSave', JSON.stringify(secureSave));
+  } catch (error) {
+    console.warn('Async save failed, falling back to sync:', error);
+    const { createSecureSaveSync } = await import('./antiCheat');
+    const secureSave = createSecureSaveSync(state);
+    localStorage.setItem('clubManagerSave', JSON.stringify(secureSave));
+  }
 }
 
 /**
