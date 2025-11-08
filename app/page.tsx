@@ -8,8 +8,10 @@ import ManagePerformers from '@/components/ManagePerformers';
 import RunClubNight from '@/components/RunClubNight';
 import ViewStats from '@/components/ViewStats';
 import UpgradeShop from '@/components/UpgradeShop';
+import LoadingScreen from '@/components/LoadingScreen';
 import { GameState } from '@/lib/types';
-import { createInitialGameState, saveGameState, loadGameState, advanceDay } from '@/lib/gameLogic';
+import { createInitialGameState, advanceDay } from '@/lib/gameLogic';
+import { bootstrapGame, saveToStorage, deleteSave, BootstrapState, BootstrapStatus } from '@/lib/bootstrap';
 
 type GameView = 'menu' | 'recruit' | 'manage' | 'run' | 'stats' | 'upgrades';
 
@@ -17,22 +19,49 @@ export default function Home() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [currentView, setCurrentView] = useState<GameView>('menu');
   const [showWelcome, setShowWelcome] = useState(true);
+  const [bootstrapState, setBootstrapState] = useState<BootstrapState>({
+    status: BootstrapStatus.INITIALIZING,
+    progress: 0,
+    message: 'Starting...',
+    warnings: [],
+  });
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
 
   useEffect(() => {
-    const saved = loadGameState();
-    if (saved) {
-      setGameState(saved);
-      setShowWelcome(false);
-    } else {
-      setGameState(createInitialGameState());
-    }
+    // Bootstrap the game on mount
+    const initGame = async () => {
+      const result = await bootstrapGame(setBootstrapState);
+      
+      if (result.success) {
+        setGameState(result.gameState);
+        setShowWelcome(result.isNewGame);
+        
+        // Show warnings if any
+        if (result.warnings.length > 0) {
+          setTimeout(() => {
+            alert('⚠️ Warnings:\n' + result.warnings.join('\n'));
+          }, 500);
+        }
+      } else {
+        alert('Failed to load game: ' + result.error);
+        setGameState(createInitialGameState());
+      }
+      
+      // Keep loading screen visible for a moment
+      setTimeout(() => {
+        setIsBootstrapping(false);
+      }, 800);
+    };
+
+    initGame();
   }, []);
 
   useEffect(() => {
-    if (gameState) {
-      saveGameState(gameState);
+    // Auto-save game state changes
+    if (gameState && !isBootstrapping) {
+      saveToStorage(gameState);
     }
-  }, [gameState]);
+  }, [gameState, isBootstrapping]);
 
   const handleAdvanceDay = () => {
     if (gameState) {
@@ -53,12 +82,18 @@ export default function Home() {
 
   const handleNewGame = () => {
     if (confirm("Start a new game? This will erase your current progress.")) {
+      deleteSave();
       const newState = createInitialGameState();
       setGameState(newState);
       setCurrentView('menu');
       setShowWelcome(false);
     }
   };
+
+  // Show loading screen during bootstrap
+  if (isBootstrapping) {
+    return <LoadingScreen bootstrapState={bootstrapState} />;
+  }
 
   if (!gameState) {
     return (
@@ -94,6 +129,14 @@ export default function Home() {
               <li>Reputation: 50/100</li>
               <li>Ethics Score: 50/100</li>
             </ul>
+          </div>
+          <div className="bg-purple-900 bg-opacity-40 border border-purple-500 rounded p-4 mb-6">
+            <h2 className="text-xl font-bold mb-2 flex items-center">
+              🔒 Protected by Anti-Cheat
+            </h2>
+            <p className="text-sm text-gray-300">
+              Your save files are protected with SHA-256 checksums to ensure fair play and prevent tampering.
+            </p>
           </div>
           <button
             onClick={() => setShowWelcome(false)}
