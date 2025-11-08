@@ -26,7 +26,7 @@ export default function UpgradeShop({ state, onUpdate, onBack }: UpgradeShopProp
       
       <div className="bg-blue-900 border border-blue-600 rounded-lg p-4 mb-4">
         <p className="text-blue-200">
-          💡 Upgrades improve your club's performance and unlock new opportunities. Costs increase with each level.
+          💡 Upgrades improve your club&apos;s performance and unlock new opportunities. Costs increase with each level.
         </p>
       </div>
       

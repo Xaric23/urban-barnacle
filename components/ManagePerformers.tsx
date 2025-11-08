@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { GameState, Performer } from '@/lib/types';
+import { GameState } from '@/lib/types';
 import { trainPerformer, restPerformer } from '@/lib/gameLogic';
+import WardrobeManager from './WardrobeManager';
 
 interface ManagePerformersProps {
   state: GameState;
@@ -10,6 +11,7 @@ interface ManagePerformersProps {
 
 export default function ManagePerformers({ state, onUpdate, onBack }: ManagePerformersProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [showWardrobe, setShowWardrobe] = useState(false);
 
   const handleTrain = (index: number) => {
     const performer = state.performers[index];
@@ -44,11 +46,39 @@ export default function ManagePerformers({ state, onUpdate, onBack }: ManagePerf
   const handleTalk = (index: number) => {
     const performer = state.performers[index];
     const newState = { ...state };
-    newState.relationships[performer.name] = Math.min(10, newState.relationships[performer.name] + 1);
-    performer.loyalty = Math.min(10, performer.loyalty + 1);
-    newState.performers[index] = { ...performer };
+    const currentRelationship = newState.relationships[performer.name] || 5;
+    newState.relationships[performer.name] = Math.min(10, currentRelationship + 1);
+    const updatedPerformer = { ...performer };
+    updatedPerformer.loyalty = Math.min(10, updatedPerformer.loyalty + 1);
+    newState.performers[index] = updatedPerformer;
     onUpdate(newState);
     alert(`You spent time with ${performer.name}. Relationship improved to ${newState.relationships[performer.name]}/10`);
+  };
+
+  const toggleAdultService = (index: number, service: 'striptease' | 'privateLounge' | 'afterHours') => {
+    const performer = state.performers[index];
+    const newState = { ...state };
+    const updatedPerformer = { ...performer };
+    
+    if (service === 'striptease') {
+      updatedPerformer.offersStriptease = !updatedPerformer.offersStriptease;
+      if (updatedPerformer.offersStriptease) {
+        newState.ethicsScore = Math.max(0, newState.ethicsScore - 3);
+      }
+    } else if (service === 'privateLounge') {
+      updatedPerformer.offersPrivateLounge = !updatedPerformer.offersPrivateLounge;
+      if (updatedPerformer.offersPrivateLounge) {
+        newState.ethicsScore = Math.max(0, newState.ethicsScore - 5);
+      }
+    } else if (service === 'afterHours') {
+      updatedPerformer.afterHoursExclusive = !updatedPerformer.afterHoursExclusive;
+      if (updatedPerformer.afterHoursExclusive) {
+        newState.ethicsScore = Math.max(0, newState.ethicsScore - 8);
+      }
+    }
+    
+    newState.performers[index] = updatedPerformer;
+    onUpdate(newState);
   };
 
   const handleFire = (index: number) => {
@@ -67,6 +97,18 @@ export default function ManagePerformers({ state, onUpdate, onBack }: ManagePerf
   if (selectedIndex !== null) {
     const performer = state.performers[selectedIndex];
     const relationship = state.relationships[performer.name] || 5;
+
+    if (showWardrobe) {
+      return (
+        <WardrobeManager
+          state={state}
+          performer={performer}
+          performerIndex={selectedIndex}
+          onUpdate={onUpdate}
+          onBack={() => setShowWardrobe(false)}
+        />
+      );
+    }
 
     return (
       <div className="space-y-4">
@@ -113,6 +155,57 @@ export default function ManagePerformers({ state, onUpdate, onBack }: ManagePerf
           <div className="text-sm">
             <span className="text-gray-400">Daily Salary:</span> ${performer.salary}
           </div>
+          
+          <div className="text-sm">
+            <span className="text-gray-400">Lifetime Tips:</span> <span className="text-green-400">${performer.tipsEarned}</span>
+          </div>
+        </div>
+        
+        <div className="bg-gray-700 rounded-lg p-4">
+          <h3 className="font-bold mb-3">Adult Services (⚠️ Affects Ethics)</h3>
+          <div className="space-y-2">
+            <button
+              onClick={() => toggleAdultService(selectedIndex, 'striptease')}
+              className={`w-full text-left p-3 rounded transition ${
+                performer.offersStriptease 
+                  ? 'bg-pink-600 hover:bg-pink-700' 
+                  : 'bg-gray-800 hover:bg-gray-600'
+              }`}
+            >
+              <div className="flex justify-between items-center">
+                <span>💃 Striptease Routines (+25% income, -3 energy)</span>
+                <span className="font-bold">{performer.offersStriptease ? 'ON' : 'OFF'}</span>
+              </div>
+            </button>
+            
+            <button
+              onClick={() => toggleAdultService(selectedIndex, 'privateLounge')}
+              className={`w-full text-left p-3 rounded transition ${
+                performer.offersPrivateLounge 
+                  ? 'bg-pink-600 hover:bg-pink-700' 
+                  : 'bg-gray-800 hover:bg-gray-600'
+              }`}
+            >
+              <div className="flex justify-between items-center">
+                <span>🛋️ Private Lounge (+35% income, -4 energy)</span>
+                <span className="font-bold">{performer.offersPrivateLounge ? 'ON' : 'OFF'}</span>
+              </div>
+            </button>
+            
+            <button
+              onClick={() => toggleAdultService(selectedIndex, 'afterHours')}
+              className={`w-full text-left p-3 rounded transition ${
+                performer.afterHoursExclusive 
+                  ? 'bg-pink-600 hover:bg-pink-700' 
+                  : 'bg-gray-800 hover:bg-gray-600'
+              }`}
+            >
+              <div className="flex justify-between items-center">
+                <span>🌙 After-Hours Exclusive (+45% income, -5 energy)</span>
+                <span className="font-bold">{performer.afterHoursExclusive ? 'ON' : 'OFF'}</span>
+              </div>
+            </button>
+          </div>
         </div>
         
         <div className="grid grid-cols-2 gap-3">
@@ -135,12 +228,19 @@ export default function ManagePerformers({ state, onUpdate, onBack }: ManagePerf
             💬 Talk
           </button>
           <button
-            onClick={() => handleFire(selectedIndex)}
-            className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition"
+            onClick={() => setShowWardrobe(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition"
           >
-            ❌ Fire
+            👔 Wardrobe
           </button>
         </div>
+        
+        <button
+          onClick={() => handleFire(selectedIndex)}
+          className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition"
+        >
+          ❌ Fire Performer
+        </button>
         
         <button
           onClick={() => setSelectedIndex(null)}

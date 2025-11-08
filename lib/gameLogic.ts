@@ -1,7 +1,7 @@
 // Game Logic and State Management for Underground Club Manager
 
-import { GameState, Performer, PerformerType, Gender, Upgrade, Promotion } from './types';
-import { PERSONALITY_TRAITS, generateFullName } from './constants';
+import { GameState, Performer, PerformerType, Gender, Upgrade, ClothingSlot, Wardrobe, ClothingItem } from './types';
+import { PERSONALITY_TRAITS, generateFullName, CLOTHING_CATALOG } from './constants';
 
 export function createInitialGameState(): GameState {
   return {
@@ -26,6 +26,7 @@ export function createInitialGameState(): GameState {
     eventCooldowns: {},
     eventHistory: [],
     lastEventDay: 0,
+    ownedClothing: [],
   };
 }
 
@@ -89,6 +90,13 @@ export function generatePerformer(type: PerformerType): Performer {
     dancerStripRoutine: false,
     offersPrivateLounge: false,
     afterHoursExclusive: false,
+    wardrobe: {
+      [ClothingSlot.TOP]: null,
+      [ClothingSlot.BOTTOM]: null,
+      [ClothingSlot.SHOES]: null,
+      [ClothingSlot.ACCESSORY]: null,
+    },
+    tipsEarned: 0,
   };
 }
 
@@ -201,4 +209,84 @@ export function purchaseUpgrade(state: GameState, upgradeId: string): { success:
   state.money -= cost;
   state.upgrades[upgradeId] = currentLevel + 1;
   return { success: true, message: `✓ Upgraded ${upgrade.name} to level ${currentLevel + 1}.` };
+}
+
+// Calculate wardrobe appeal bonus
+export function calculateWardrobeAppeal(wardrobe: Wardrobe, ownedClothing: string[]): number {
+  let totalAppeal = 0;
+  
+  Object.values(wardrobe).forEach((itemId) => {
+    if (itemId && ownedClothing.includes(itemId)) {
+      const item = CLOTHING_CATALOG.find((c) => c.id === itemId);
+      if (item) {
+        totalAppeal += item.appeal;
+      }
+    }
+  });
+  
+  return totalAppeal;
+}
+
+// Calculate tips based on performance
+export function calculateTips(performer: Performer, baseIncome: number, ownedClothing: string[]): { tips: number; message: string } {
+  if (performer.energy < 2) {
+    return { tips: 0, message: "Too tired to earn tips." };
+  }
+  
+  // Base tip rate (10-30% of base income)
+  let tipRate = 0.10 + (performer.skill / 100);
+  
+  // Relationship bonus (up to +10%)
+  const relationshipBonus = Math.min(0.10, performer.loyalty / 100);
+  tipRate += relationshipBonus;
+  
+  // Wardrobe appeal bonus (up to +15%)
+  const wardrobeAppeal = calculateWardrobeAppeal(performer.wardrobe, ownedClothing);
+  const wardrobeBonus = Math.min(0.15, wardrobeAppeal / 100);
+  tipRate += wardrobeBonus;
+  
+  // Trait bonuses
+  if (performer.traits.includes("Charismatic")) {
+    tipRate += 0.05;
+  }
+  if (performer.traits.includes("Crowd Pleaser")) {
+    tipRate += 0.08;
+  }
+  
+  const tips = Math.floor(baseIncome * tipRate);
+  return { tips, message: `Earned $${tips} in tips!` };
+}
+
+// Calculate income from adult services
+export function calculateAdultServiceIncome(performer: Performer, baseIncome: number): { bonus: number; messages: string[] } {
+  let totalBonus = 0;
+  const messages: string[] = [];
+  
+  if (performer.offersStriptease && performer.energy >= 3) {
+    const stripBonus = Math.max(120, Math.floor(baseIncome * 0.25));
+    totalBonus += stripBonus;
+    messages.push(`Striptease routine: +$${stripBonus}`);
+  } else if (performer.offersStriptease) {
+    messages.push("Too exhausted for striptease routine");
+  }
+  
+  if (performer.offersPrivateLounge && performer.energy >= 4) {
+    const loungeBase = baseIncome + totalBonus;
+    const loungeBonus = Math.max(160, Math.floor(loungeBase * 0.35));
+    totalBonus += loungeBonus;
+    messages.push(`Private lounge experience: +$${loungeBonus}`);
+  } else if (performer.offersPrivateLounge) {
+    messages.push("Too drained for private lounge");
+  }
+  
+  if (performer.afterHoursExclusive && performer.energy >= 5) {
+    const exclusiveBase = baseIncome + totalBonus;
+    const exclusiveBonus = Math.max(240, Math.floor(exclusiveBase * 0.45));
+    totalBonus += exclusiveBonus;
+    messages.push(`After-hours exclusive: +$${exclusiveBonus}`);
+  } else if (performer.afterHoursExclusive) {
+    messages.push("No stamina for after-hours exclusive");
+  }
+  
+  return { bonus: totalBonus, messages };
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { GameState } from '@/lib/types';
-import { performWork, calculateTraitBonus } from '@/lib/gameLogic';
+import { performWork, calculateTraitBonus, calculateTips, calculateAdultServiceIncome } from '@/lib/gameLogic';
 
 interface RunClubNightProps {
   state: GameState;
@@ -10,8 +10,10 @@ interface RunClubNightProps {
 
 export default function RunClubNight({ state, onUpdate, onBack }: RunClubNightProps) {
   const [results, setResults] = useState<{
-    performers: { name: string; income: number; message: string }[];
+    performers: { name: string; income: number; tips: number; adultBonus: number; message: string; adultMessages: string[] }[];
     totalIncome: number;
+    totalTips: number;
+    totalAdultBonus: number;
     totalExpenses: number;
     netProfit: number;
   } | null>(null);
@@ -19,33 +21,71 @@ export default function RunClubNight({ state, onUpdate, onBack }: RunClubNightPr
   const handleRunNight = () => {
     const newState = { ...state };
     let totalIncome = 0;
+    let totalTips = 0;
+    let totalAdultBonus = 0;
     let totalExpenses = 0;
-    const performerResults: { name: string; income: number; message: string }[] = [];
+    const performerResults: { 
+      name: string; 
+      income: number; 
+      tips: number; 
+      adultBonus: number; 
+      message: string;
+      adultMessages: string[];
+    }[] = [];
 
     newState.performers.forEach((performer, index) => {
       let income = performWork(performer);
       totalExpenses += performer.salary;
 
       let message = '';
+      let tips = 0;
+      let adultBonus = 0;
+      const adultMessages: string[] = [];
+      
       if (income > 0) {
+        // Trait bonus
         const { bonus, message: traitMsg } = calculateTraitBonus(performer, income);
         income += bonus;
+        
+        // Tips
+        const tipResult = calculateTips(performer, income, newState.ownedClothing);
+        tips = tipResult.tips;
+        
+        // Adult services
+        const adultResult = calculateAdultServiceIncome(performer, income);
+        adultBonus = adultResult.bonus;
+        adultMessages.push(...adultResult.messages);
+        
+        const total = income + tips + adultBonus;
         totalIncome += income;
-        message = traitMsg ? `Income: $${income} (${traitMsg})` : `Income: $${income}`;
+        totalTips += tips;
+        totalAdultBonus += adultBonus;
+        
+        message = traitMsg 
+          ? `Base: $${income} (${traitMsg}) | Tips: $${tips} | Total: $${total}` 
+          : `Base: $${income} | Tips: $${tips} | Total: $${total}`;
+        
+        // Update performer's lifetime tips
+        const updatedPerformer = { ...performer };
+        updatedPerformer.tipsEarned += tips;
+        newState.performers[index] = updatedPerformer;
       } else {
         message = 'Too tired to perform';
+        newState.performers[index] = { ...performer };
       }
 
       performerResults.push({
         name: performer.name,
         income,
-        message
+        tips,
+        adultBonus,
+        message,
+        adultMessages
       });
-
-      newState.performers[index] = { ...performer };
     });
 
-    const netProfit = totalIncome - totalExpenses;
+    const totalRevenue = totalIncome + totalTips + totalAdultBonus;
+    const netProfit = totalRevenue - totalExpenses;
     newState.money += netProfit;
 
     // Reputation changes
@@ -58,6 +98,8 @@ export default function RunClubNight({ state, onUpdate, onBack }: RunClubNightPr
     setResults({
       performers: performerResults,
       totalIncome,
+      totalTips,
+      totalAdultBonus,
       totalExpenses,
       netProfit
     });
@@ -75,10 +117,17 @@ export default function RunClubNight({ state, onUpdate, onBack }: RunClubNightPr
               <div className="flex justify-between items-start">
                 <span className="font-bold">{result.name}</span>
                 <span className={result.income > 0 ? 'text-green-400' : 'text-gray-400'}>
-                  {result.income > 0 ? `$${result.income}` : '-'}
+                  {result.income > 0 ? `$${result.income + result.tips + result.adultBonus}` : '-'}
                 </span>
               </div>
               <div className="text-sm text-gray-400 mt-1">{result.message}</div>
+              {result.adultMessages.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {result.adultMessages.map((msg, i) => (
+                    <div key={i} className="text-xs text-pink-400">🔞 {msg}</div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -87,9 +136,19 @@ export default function RunClubNight({ state, onUpdate, onBack }: RunClubNightPr
           <h3 className="text-xl font-bold mb-3">Financial Summary</h3>
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span>Total Income:</span>
+              <span>Base Income:</span>
               <span className="font-bold text-green-400">${results.totalIncome}</span>
             </div>
+            <div className="flex justify-between">
+              <span>💵 Tips:</span>
+              <span className="font-bold text-green-400">${results.totalTips}</span>
+            </div>
+            {results.totalAdultBonus > 0 && (
+              <div className="flex justify-between">
+                <span>🔞 Adult Services:</span>
+                <span className="font-bold text-pink-400">${results.totalAdultBonus}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span>Total Expenses:</span>
               <span className="font-bold text-red-400">${results.totalExpenses}</span>
@@ -122,7 +181,7 @@ export default function RunClubNight({ state, onUpdate, onBack }: RunClubNightPr
       <h2 className="text-2xl font-bold mb-4">Run Club Night</h2>
       
       <div className="bg-gray-700 rounded-lg p-6">
-        <h3 className="text-lg font-bold mb-3">Tonight's Lineup</h3>
+        <h3 className="text-lg font-bold mb-3">Tonight&apos;s Lineup</h3>
         {state.performers.length === 0 ? (
           <p className="text-gray-400">No performers available!</p>
         ) : (
