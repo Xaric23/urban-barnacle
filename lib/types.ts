@@ -24,6 +24,29 @@ export enum EventType {
   RANDOM = "random",
 }
 
+export enum ClothingSlot {
+  TOP = "top",
+  BOTTOM = "bottom",
+  SHOES = "shoes",
+  ACCESSORY = "accessory",
+}
+
+export interface ClothingItem {
+  id: string;
+  name: string;
+  slot: ClothingSlot;
+  appeal: number; // 0-10, affects tips and income
+  cost: number;
+  description: string;
+}
+
+export interface Wardrobe {
+  [ClothingSlot.TOP]: string | null; // clothing item id
+  [ClothingSlot.BOTTOM]: string | null;
+  [ClothingSlot.SHOES]: string | null;
+  [ClothingSlot.ACCESSORY]: string | null;
+}
+
 export interface Performer {
   name: string;
   performerType: PerformerType;
@@ -39,6 +62,8 @@ export interface Performer {
   dancerStripRoutine: boolean;
   offersPrivateLounge: boolean;
   afterHoursExclusive: boolean;
+  wardrobe: Wardrobe;
+  tipsEarned: number; // Lifetime tips earned by this performer
 }
 
 export interface GameState {
@@ -57,6 +82,7 @@ export interface GameState {
   eventCooldowns: Record<string, number>; // event_id -> day_available_again
   eventHistory: string[];
   lastEventDay: number;
+  ownedClothing: string[]; // IDs of clothing items owned by the club
 }
 
 export interface EventContext {
@@ -79,7 +105,12 @@ export interface Upgrade {
   desc: string;
   baseCost: number;
   maxLevel: number;
-  [key: string]: any;
+  incomePct?: number;
+  eventFailureReduction?: number;
+  spendingPowerPct?: number;
+  crowdSizePct?: number;
+  repGainPct?: number;
+  eventProbReduction?: number;
 }
 
 export interface Promotion {
