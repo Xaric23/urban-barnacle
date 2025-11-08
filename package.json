@@ -32,7 +32,7 @@
       "target": [
         "nsis"
       ],
-      "sign": null
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": false,
