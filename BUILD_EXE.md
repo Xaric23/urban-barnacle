@@ -103,3 +103,4 @@ The game is packaged using:
 - The first launch may be slower as Windows verifies the application
 - You may need to allow the app through Windows Firewall on first launch
 - **The executable is unsigned** - Windows may show a SmartScreen warning on first run. Click "More info" then "Run anyway" to proceed. This is normal for unsigned applications.
+- **Auto-Update System** - The app includes automatic update checking. When new versions are released as GitHub Releases, users will be notified and can download/install updates automatically. See [AUTO_UPDATE_GUIDE.md](AUTO_UPDATE_GUIDE.md) for details.

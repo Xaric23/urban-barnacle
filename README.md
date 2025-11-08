@@ -25,6 +25,7 @@ A text-based management game where you run an underground nightclub. Recruit and
 - **🚀 Bootstrap Launcher**: Professional loading sequence with integrity checking and validation
 - **💾 Secure Saves**: Tamper-evident save files with automatic corruption detection
 - **🔄 Auto-Recovery**: Graceful handling of corrupted saves with automatic new game creation
+- **⬆️ Auto-Update System**: Automatic update checking and installation from GitHub Releases (desktop app only)
 
 ## 🚀 Technology Stack
 
