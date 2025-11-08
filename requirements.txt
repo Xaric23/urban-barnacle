@@ -1,0 +1,7 @@
+# Underground Club Manager - Python Dependencies
+# No external dependencies required - uses only Python standard library
+# Python 3.8+ recommended
+
+# Optional: For running tests
+# pytest>=7.0.0
+# pytest-cov>=4.0.0
