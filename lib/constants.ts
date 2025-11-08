@@ -1,4 +1,4 @@
-import { ClothingItem, ClothingSlot } from './types';
+import { ClothingItem, ClothingSlot, PersonalityArchetype, ThemedNightType, ThemedNight, SkillCard, StageProp, SpecialEffect, RivalClub } from './types';
 
 // Game Constants - Traits and Names
 
@@ -103,5 +103,156 @@ export const CLOTHING_CATALOG: ClothingItem[] = [
   { id: "acc_choker", name: "Choker", slot: ClothingSlot.ACCESSORY, appeal: 5, cost: 200, description: "Trendy neckwear" },
   { id: "acc_diamond_necklace", name: "Diamond Necklace", slot: ClothingSlot.ACCESSORY, appeal: 8, cost: 1000, description: "Dazzling jewels" },
   { id: "acc_gold_chain", name: "Gold Chain", slot: ClothingSlot.ACCESSORY, appeal: 7, cost: 600, description: "Shows success" },
+];
+
+// Chemistry System Constants
+export const PERSONALITY_ARCHETYPES = Object.values(PersonalityArchetype);
+
+export const CHEMISTRY_COMPATIBILITY: Record<PersonalityArchetype, PersonalityArchetype[]> = {
+  [PersonalityArchetype.FLIRTATIOUS]: [PersonalityArchetype.SHY, PersonalityArchetype.PLAYFUL, PersonalityArchetype.KINKY],
+  [PersonalityArchetype.DOMINANT]: [PersonalityArchetype.SHY, PersonalityArchetype.KINKY],
+  [PersonalityArchetype.SHY]: [PersonalityArchetype.FLIRTATIOUS, PersonalityArchetype.DOMINANT, PersonalityArchetype.MYSTERIOUS],
+  [PersonalityArchetype.KINKY]: [PersonalityArchetype.FLIRTATIOUS, PersonalityArchetype.DOMINANT, PersonalityArchetype.PLAYFUL],
+  [PersonalityArchetype.COMEDIC]: [PersonalityArchetype.PLAYFUL, PersonalityArchetype.VANILLA],
+  [PersonalityArchetype.VANILLA]: [PersonalityArchetype.VANILLA, PersonalityArchetype.COMEDIC],
+  [PersonalityArchetype.MYSTERIOUS]: [PersonalityArchetype.SHY, PersonalityArchetype.FLIRTATIOUS],
+  [PersonalityArchetype.PLAYFUL]: [PersonalityArchetype.FLIRTATIOUS, PersonalityArchetype.KINKY, PersonalityArchetype.COMEDIC],
+};
+
+// Themed Nights Configuration
+export const THEMED_NIGHTS: ThemedNight[] = [
+  {
+    type: ThemedNightType.GOTHIC_FETISH,
+    name: "Gothic Fetish Night",
+    description: "Dark, mysterious performances with BDSM themes",
+    requiredArchetypes: [PersonalityArchetype.DOMINANT, PersonalityArchetype.KINKY, PersonalityArchetype.MYSTERIOUS],
+    bonusMultiplier: 1.5,
+    minPerformers: 2,
+  },
+  {
+    type: ThemedNightType.COMEDY_BURLESQUE,
+    name: "Comedy Burlesque",
+    description: "Laughter and sensuality combined",
+    requiredArchetypes: [PersonalityArchetype.COMEDIC, PersonalityArchetype.PLAYFUL],
+    bonusMultiplier: 1.3,
+    minPerformers: 2,
+  },
+  {
+    type: ThemedNightType.PET_PLAY_THURSDAY,
+    name: "Pet Play Thursday",
+    description: "Animal roleplay and submission themes",
+    requiredArchetypes: [PersonalityArchetype.KINKY, PersonalityArchetype.PLAYFUL, PersonalityArchetype.SHY],
+    bonusMultiplier: 1.4,
+    minPerformers: 2,
+  },
+  {
+    type: ThemedNightType.BDSM_SHOWCASE,
+    name: "BDSM Showcase",
+    description: "Dominance and submission performances",
+    requiredArchetypes: [PersonalityArchetype.DOMINANT, PersonalityArchetype.KINKY],
+    bonusMultiplier: 1.6,
+    minPerformers: 2,
+  },
+  {
+    type: ThemedNightType.VANILLA_ROMANCE,
+    name: "Vanilla Romance Night",
+    description: "Classic, romantic performances",
+    requiredArchetypes: [PersonalityArchetype.VANILLA, PersonalityArchetype.FLIRTATIOUS],
+    bonusMultiplier: 1.2,
+    minPerformers: 2,
+  },
+  {
+    type: ThemedNightType.MYSTERY_MASQUERADE,
+    name: "Mystery Masquerade",
+    description: "Masked performers in mysterious acts",
+    requiredArchetypes: [PersonalityArchetype.MYSTERIOUS, PersonalityArchetype.FLIRTATIOUS],
+    bonusMultiplier: 1.35,
+    minPerformers: 2,
+  },
+  {
+    type: ThemedNightType.PLAYFUL_TEASE,
+    name: "Playful Tease Night",
+    description: "Fun, flirtatious performances",
+    requiredArchetypes: [PersonalityArchetype.PLAYFUL, PersonalityArchetype.FLIRTATIOUS],
+    bonusMultiplier: 1.25,
+    minPerformers: 2,
+  },
+];
+
+// Skill Card System
+export const SKILL_CARDS: SkillCard[] = [
+  // Tease Cards
+  { id: "tease_wink", name: "Seductive Wink", category: "tease", power: 3, energyCost: 1, description: "A flirtatious wink that captivates", comboWith: ["tease_dance"] },
+  { id: "tease_dance", name: "Teasing Dance", category: "tease", power: 5, energyCost: 2, description: "A provocative dance routine", comboWith: ["tease_wink", "tease_strip"] },
+  { id: "tease_strip", name: "Slow Strip", category: "tease", power: 7, energyCost: 3, description: "Artful removal of clothing", comboWith: ["tease_dance"] },
+  
+  // Dominance Cards
+  { id: "dom_command", name: "Commanding Presence", category: "dominance", power: 6, energyCost: 2, description: "Assert dominance over the audience", comboWith: ["dom_punish"] },
+  { id: "dom_punish", name: "Playful Punishment", category: "dominance", power: 8, energyCost: 3, description: "Theatrical dominance display", comboWith: ["dom_command"] },
+  
+  // Submission Cards
+  { id: "sub_obey", name: "Obedient Display", category: "submission", power: 5, energyCost: 2, description: "Submissive performance", comboWith: ["sub_beg"] },
+  { id: "sub_beg", name: "Pleading Performance", category: "submission", power: 6, energyCost: 2, description: "Theatrical begging", comboWith: ["sub_obey"] },
+  
+  // Comedy Cards
+  { id: "comedy_joke", name: "Naughty Joke", category: "comedy", power: 4, energyCost: 1, description: "NSFW humor", comboWith: ["comedy_physical"] },
+  { id: "comedy_physical", name: "Slapstick Burlesque", category: "comedy", power: 6, energyCost: 2, description: "Physical comedy with sensuality", comboWith: ["comedy_joke"] },
+  
+  // Mystery Cards
+  { id: "mystery_mask", name: "Masked Tease", category: "mystery", power: 5, energyCost: 2, description: "Hidden identity performance", comboWith: ["mystery_reveal"] },
+  { id: "mystery_reveal", name: "Dramatic Reveal", category: "mystery", power: 7, energyCost: 3, description: "Surprising unveiling", comboWith: ["mystery_mask"] },
+  
+  // Vanilla Cards
+  { id: "vanilla_romance", name: "Romantic Dance", category: "vanilla", power: 4, energyCost: 1, description: "Sweet, sensual performance", comboWith: ["vanilla_kiss"] },
+  { id: "vanilla_kiss", name: "Air Kiss", category: "vanilla", power: 3, energyCost: 1, description: "Blow kisses to audience", comboWith: ["vanilla_romance"] },
+];
+
+// Stage Props
+export const STAGE_PROPS: StageProp[] = [
+  { id: "prop_pole", name: "Professional Pole", type: "pole", appeal: 8, cost: 1500, maintenanceCost: 20, description: "Classic stripper pole" },
+  { id: "prop_cage", name: "Dancing Cage", type: "cage", appeal: 7, cost: 2000, maintenanceCost: 30, description: "Cage for confined performances" },
+  { id: "prop_throne", name: "Dominance Throne", type: "throne", appeal: 9, cost: 2500, maintenanceCost: 15, description: "Throne for power dynamics" },
+  { id: "prop_swing", name: "Aerial Swing", type: "swing", appeal: 10, cost: 3000, maintenanceCost: 50, description: "Suspended swing for aerial acts" },
+  { id: "prop_platform", name: "Elevated Platform", type: "platform", appeal: 6, cost: 800, maintenanceCost: 10, description: "Raised stage section" },
+];
+
+// Special Effects
+export const SPECIAL_EFFECTS: SpecialEffect[] = [
+  { id: "fx_fire", name: "Fire Display", type: "fire", impact: 15, cost: 3000, maintenanceCost: 100, description: "Controlled flames on stage" },
+  { id: "fx_laser", name: "Laser Show", type: "laser", impact: 12, cost: 2500, maintenanceCost: 75, description: "Colorful laser patterns" },
+  { id: "fx_bubble", name: "Bubble Machine", type: "bubble", impact: 8, cost: 800, maintenanceCost: 30, description: "Fills stage with bubbles" },
+  { id: "fx_smoke", name: "Smoke Machine", type: "smoke", impact: 10, cost: 1200, maintenanceCost: 40, description: "Atmospheric fog effects" },
+  { id: "fx_champagne", name: "Champagne Shower", type: "champagne_shower", impact: 20, cost: 5000, maintenanceCost: 200, description: "Luxurious champagne spray" },
+  { id: "fx_confetti", name: "Confetti Cannon", type: "confetti", impact: 7, cost: 600, maintenanceCost: 25, description: "Festive confetti bursts" },
+];
+
+// Rival Clubs
+export const RIVAL_CLUBS: RivalClub[] = [
+  { name: "The Velvet Underground", strength: 60, aggression: 50, lastSabotage: 0 },
+  { name: "Crimson Palace", strength: 70, aggression: 70, lastSabotage: 0 },
+  { name: "Midnight Oasis", strength: 50, aggression: 30, lastSabotage: 0 },
+];
+
+// Crowd Kinks/Trends
+export const CROWD_KINKS = [
+  "bdsm", "petplay", "roleplay", "voyeurism", "exhibitionism",
+  "fetish", "vanilla", "comedy", "gothic", "mystery"
+];
+
+// Seasonal Trends
+export const SEASONAL_TRENDS: Record<string, string[]> = {
+  winter: ["gothic", "mystery", "bdsm"],
+  spring: ["vanilla", "romance", "playful"],
+  summer: ["exhibitionism", "beach", "playful"],
+  fall: ["gothic", "mystery", "fetish"],
+};
+
+// Viral Trends (random chance)
+export const VIRAL_TRENDS = [
+  { name: "Tentacle Trend", kink: "fetish", duration: 7, bonus: 30 },
+  { name: "Pet Play Craze", kink: "petplay", duration: 5, bonus: 25 },
+  { name: "Gothic Revival", kink: "gothic", duration: 10, bonus: 20 },
+  { name: "Comedy Boom", kink: "comedy", duration: 6, bonus: 22 },
+  { name: "Mystery Madness", kink: "mystery", duration: 8, bonus: 18 },
 ];
 

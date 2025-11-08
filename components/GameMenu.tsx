@@ -2,7 +2,7 @@ import { GameState } from '@/lib/types';
 
 interface GameMenuProps {
   state: GameState;
-  onNavigate: (view: 'recruit' | 'manage' | 'run' | 'stats' | 'upgrades') => void;
+  onNavigate: (view: 'recruit' | 'manage' | 'run' | 'stats' | 'upgrades' | 'drama' | 'stage' | 'expansions' | 'trends') => void;
   onAdvanceDay: () => void;
 }
 
@@ -43,6 +43,38 @@ export default function GameMenu({ state, onNavigate, onAdvanceDay }: GameMenuPr
       >
         <span>⬆️ Club Upgrades</span>
         <span className="text-sm opacity-75">Improve facilities</span>
+      </button>
+      
+      <button
+        onClick={() => onNavigate('drama')}
+        className="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-4 px-6 rounded-lg transition flex items-center justify-between"
+      >
+        <span>🎭 Staff Drama</span>
+        <span className="text-sm opacity-75">{state.activeRumors.length} active rumor(s)</span>
+      </button>
+      
+      <button
+        onClick={() => onNavigate('stage')}
+        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-6 rounded-lg transition flex items-center justify-between"
+      >
+        <span>🎪 Stage & Effects</span>
+        <span className="text-sm opacity-75">{state.stageProps.length + state.activeEffects.length} items</span>
+      </button>
+      
+      <button
+        onClick={() => onNavigate('expansions')}
+        className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-4 px-6 rounded-lg transition flex items-center justify-between"
+      >
+        <span>⭐ Fame & Expansions</span>
+        <span className="text-sm opacity-75">Fame: {state.fame}/100</span>
+      </button>
+      
+      <button
+        onClick={() => onNavigate('trends')}
+        className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 px-6 rounded-lg transition flex items-center justify-between"
+      >
+        <span>📊 Crowd Trends</span>
+        <span className="text-sm opacity-75">{state.viralTrends.length} viral trend(s)</span>
       </button>
       
       <button

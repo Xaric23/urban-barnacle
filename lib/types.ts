@@ -22,6 +22,30 @@ export enum EventType {
   BUSINESS = "business",
   RELATIONSHIP = "relationship",
   RANDOM = "random",
+  SABOTAGE = "sabotage",
+  DRAMA = "drama",
+  TREND = "trend",
+}
+
+export enum PersonalityArchetype {
+  FLIRTATIOUS = "flirtatious",
+  DOMINANT = "dominant",
+  SHY = "shy",
+  KINKY = "kinky",
+  COMEDIC = "comedic",
+  VANILLA = "vanilla",
+  MYSTERIOUS = "mysterious",
+  PLAYFUL = "playful",
+}
+
+export enum ThemedNightType {
+  GOTHIC_FETISH = "gothic_fetish",
+  COMEDY_BURLESQUE = "comedy_burlesque",
+  PET_PLAY_THURSDAY = "pet_play_thursday",
+  BDSM_SHOWCASE = "bdsm_showcase",
+  VANILLA_ROMANCE = "vanilla_romance",
+  MYSTERY_MASQUERADE = "mystery_masquerade",
+  PLAYFUL_TEASE = "playful_tease",
 }
 
 export enum ClothingSlot {
@@ -64,6 +88,10 @@ export interface Performer {
   afterHoursExclusive: boolean;
   wardrobe: Wardrobe;
   tipsEarned: number; // Lifetime tips earned by this performer
+  personalityArchetype: PersonalityArchetype; // New: personality type
+  chemistryWith: Record<string, number>; // New: performer_name -> chemistry_score (0-100)
+  relationships: Record<string, "alliance" | "feud" | "romance" | "neutral">; // New: staff relationships
+  cards: string[]; // New: NSFW skill cards
 }
 
 export interface GameState {
@@ -83,6 +111,33 @@ export interface GameState {
   eventHistory: string[];
   lastEventDay: number;
   ownedClothing: string[]; // IDs of clothing items owned by the club
+  
+  // New: Audience & Crowd System
+  crowdMood: Record<string, number>; // kink_type -> demand level (0-100)
+  seasonalTrends: string[]; // active seasonal trends
+  viralTrends: string[]; // current viral trends
+  
+  // New: Drama & Gossip
+  activeRumors: Rumor[];
+  dramaLevel: number; // 0-100, affects performance
+  
+  // New: Club Customization
+  stageProps: StageProp[];
+  activeEffects: string[]; // active special effects
+  maintenanceCost: number; // daily cost for effects/props
+  
+  // New: Rival Clubs
+  rivalClubs: RivalClub[];
+  
+  // New: Expansion & Fame
+  fame: number; // 0-100
+  camShowBranch: boolean;
+  vipWebsite: boolean;
+  managedTroupes: string[]; // IDs of troupes at other clubs
+  
+  // New: Card System
+  availableCards: SkillCard[];
+  usedCardsThisNight: string[];
 }
 
 export interface EventContext {
@@ -126,4 +181,81 @@ export interface Patron {
   mood: number;
   spendingPower: number;
   archetype: string;
+}
+
+// New Types for Advanced Features
+
+export interface Rumor {
+  id: string;
+  title: string;
+  description: string;
+  involvedPerformers: string[]; // performer names
+  severity: "low" | "medium" | "high";
+  resolutionOptions: RumorResolution[];
+  dayStarted: number;
+}
+
+export interface RumorResolution {
+  type: "diplomacy" | "bribe" | "ignore";
+  cost: number;
+  ethicsImpact: number;
+  successChance: number;
+  description: string;
+}
+
+export interface StageProp {
+  id: string;
+  name: string;
+  type: "pole" | "cage" | "throne" | "swing" | "platform";
+  appeal: number;
+  cost: number;
+  maintenanceCost: number;
+  description: string;
+}
+
+export interface SpecialEffect {
+  id: string;
+  name: string;
+  type: "fire" | "laser" | "bubble" | "smoke" | "champagne_shower" | "confetti";
+  impact: number; // show rating bonus
+  cost: number;
+  maintenanceCost: number;
+  description: string;
+}
+
+export interface RivalClub {
+  name: string;
+  strength: number; // 0-100
+  aggression: number; // 0-100, how often they sabotage
+  lastSabotage: number; // day number
+}
+
+export interface SkillCard {
+  id: string;
+  name: string;
+  category: "tease" | "dominance" | "submission" | "comedy" | "mystery" | "vanilla";
+  power: number; // 1-10
+  energyCost: number;
+  description: string;
+  comboWith: string[]; // card IDs that combo with this
+  unlockRequirement?: string; // requirement to unlock
+}
+
+export interface ThemedNight {
+  type: ThemedNightType;
+  name: string;
+  description: string;
+  requiredArchetypes: PersonalityArchetype[];
+  bonusMultiplier: number;
+  minPerformers: number;
+}
+
+export interface TabooNightEvent {
+  id: string;
+  name: string;
+  description: string;
+  riskLevel: number; // 1-10
+  potentialReward: number;
+  ethicsImpact: number;
+  audienceVotingOptions: string[];
 }
