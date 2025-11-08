@@ -5,12 +5,15 @@ Manage your underground nightclub, recruit performers, balance ethics and profit
 and navigate moral dilemmas through branching storylines.
 """
 
+import hashlib
 import json
 import os
 import random
-from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, asdict
 from enum import Enum
+from typing import Dict, List, Optional, Set, Tuple
+
+from traits import FIRST_NAMES, LAST_NAMES, PERSONALITY_TRAITS
 
 
 class PerformerType(Enum):
@@ -40,50 +43,22 @@ class Gender(Enum):
     INTERSEX = "intersex"
 
 
-<<<<<<< HEAD
-# Comprehensive trait system - 50+ unique traits
-PERSONALITY_TRAITS = [
-    # Positive traits
-    "Charismatic", "Hardworking", "Creative", "Passionate", "Reliable",
-    "Energetic", "Confident", "Empathetic", "Innovative", "Loyal",
-    "Ambitious", "Patient", "Humble", "Optimistic", "Honest",
-    "Adaptable", "Caring", "Disciplined", "Generous", "Courageous",
-    
-    # Performance-related traits
-    "Natural Talent", "Stage Presence", "Crowd Pleaser", "Perfectionist", "Improvisational",
-    "Versatile", "Quick Learner", "Detail-Oriented", "Rhythmic", "Expressive",
-    
-    # Social traits
-    "Team Player", "Mentor", "Diplomatic", "Inspiring", "Networking Pro",
-    "Conflict Resolver", "Natural Leader", "Supportive", "Funny", "Charming",
-    
-    # Challenging traits
-    "Demanding", "Anxious", "Stubborn", "Hot-Tempered", "Jealous",
-    "Arrogant", "Moody", "Impulsive", "Reserved", "Competitive",
-    
-    # Unique traits
-    "Night Owl", "Early Bird", "Risk Taker", "Cautious", "Eccentric",
-    "Mysterious", "Flamboyant", "Minimalist", "Traditional", "Avant-Garde",
-    
-    # Additional traits
-    "Sophisticated", "Street Smart", "Book Smart", "Athletic", "Artistic",
-    "Musical Genius", "Dancing Legend", "Vocal Powerhouse", "Tech Savvy", "Fashion Icon"
-]
-=======
 # Anti-cheat constants and helpers
 _SAVE_SALT = "v1|NightclubGameSalt|DoNotModify"  # Changing this invalidates all saves
 MAX_EVENT_HISTORY = 10
+_USED_FULL_NAMES: Set[str] = set()
+
 
 def compute_checksum(data: Dict) -> str:
     """Compute a SHA256 checksum over the save data (excluding existing checksum)."""
-    filtered = {k: data[k] for k in sorted(data) if k != 'checksum'}
+    filtered = {k: data[k] for k in sorted(data) if k != "checksum"}
     serialized = json.dumps(filtered, separators=(",", ":"), sort_keys=True)
     return hashlib.sha256((_SAVE_SALT + serialized).encode()).hexdigest()
 
 
-def _serialize_performer_dict(p: Dict) -> Dict:
-    """Convert enum fields in a performer dict to JSON-safe strings."""
-    out = dict(p)
+def _serialize_performer_dict(data: Dict) -> Dict:
+    """Convert performer enum fields to JSON-safe strings before saving."""
+    out = dict(data)
     role = out.get("performer_type")
     gender = out.get("gender")
     if isinstance(role, Enum):
@@ -93,23 +68,49 @@ def _serialize_performer_dict(p: Dict) -> Dict:
     return out
 
 
-def _deserialize_performer_dict(p: Dict) -> Dict:
-    """Convert performer dict fields from strings back to Enum types."""
-    out = dict(p)
+def _deserialize_performer_dict(data: Dict) -> Dict:
+    """Convert stored performer data back into Enum values after loading."""
+    out = dict(data)
     role = out.get("performer_type")
     gender = out.get("gender")
-    try:
-        if isinstance(role, str):
+    if isinstance(role, str):
+        try:
             out["performer_type"] = PerformerType(role)
-    except Exception:
-        pass
-    try:
-        if isinstance(gender, str):
+        except ValueError:
+            pass
+    if isinstance(gender, str):
+        try:
             out["gender"] = Gender(gender)
-    except Exception:
-        pass
+        except ValueError:
+            pass
     return out
->>>>>>> bdced82 (Add automation manager system)
+
+
+def generate_full_name(used_names: Optional[Set[str]] = None) -> str:
+    """Generate a unique-sounding full name leveraging shared trait pools."""
+    pool = used_names if used_names is not None else _USED_FULL_NAMES
+    attempts = 0
+    while attempts < 50:
+        first = random.choice(FIRST_NAMES)
+        last = random.choice(LAST_NAMES)
+        candidate = f"{first} {last}"
+        if candidate not in pool:
+            pool.add(candidate)
+            return candidate
+        attempts += 1
+    suffix = random.randint(100, 999)
+    candidate = f"{random.choice(FIRST_NAMES)} {random.choice(LAST_NAMES)} #{suffix}"
+    pool.add(candidate)
+    return candidate
+
+
+@dataclass
+class Patron:
+    """Represents a patron visiting the club for the evening."""
+    name: str
+    mood: int
+    spending_power: int
+    archetype: str
 
 
 @dataclass
@@ -124,6 +125,9 @@ class Performer:
     energy: int  # 1-10
     salary: int
     reputation: int  # -10 to 10
+    promotion_level: int = 0
+    offers_striptease: bool = False
+    dancer_strip_routine: bool = False
     
     def train(self):
         """Train the performer to increase skill"""
@@ -145,6 +149,49 @@ class Performer:
         base_income = self.skill * 50
         return base_income + random.randint(-20, 50)
 
+    def perform_sensual_show(self, base_income: int) -> Tuple[int, int, int, List[str]]:
+        """Optional sensual routines that add income but may impact ethics.
+
+        Returns:
+            income_bonus: Additional revenue generated.
+            ethics_delta: Change applied to club ethics (negative lowers score).
+            reputation_delta: Change applied to reputation.
+            notes: Status messages describing the routine results.
+        """
+        total_bonus = 0
+        ethics_delta = 0
+        reputation_delta = 0
+        notes: List[str] = []
+
+        if base_income <= 0:
+            return total_bonus, ethics_delta, reputation_delta, notes
+
+        if self.offers_striptease:
+            if self.energy >= 1:
+                self.energy -= 1
+                strip_bonus = max(100, int(base_income * 0.25))
+                total_bonus += strip_bonus
+                ethics_delta -= 3
+                reputation_delta += 1
+                notes.append(f"Striptease routine earned an extra ${strip_bonus}.")
+            else:
+                notes.append("Too exhausted to deliver the striptease routine.")
+
+        if self.performer_type == PerformerType.DANCER and self.dancer_strip_routine:
+            if self.energy >= 1:
+                self.energy -= 1
+                # Scale bonus with combined base plus previous bonus so routines stack naturally
+                stripe_base = base_income + total_bonus
+                stripe_bonus = max(80, int(stripe_base * 0.18))
+                total_bonus += stripe_bonus
+                reputation_delta += 1
+                ethics_delta -= 1
+                notes.append(f"Signature striping wowed the crowd for +${stripe_bonus}.")
+            else:
+                notes.append("Not enough energy for the striping showcase.")
+
+        return total_bonus, ethics_delta, reputation_delta, notes
+
 
 @dataclass
 class GameState:
@@ -157,8 +204,6 @@ class GameState:
     relationships: Dict[str, int] = None  # performer_name -> relationship_level
     story_flags: Dict[str, bool] = None
     completed_events: List[str] = None
-<<<<<<< HEAD
-=======
     upgrades: Dict[str, int] = None  # upgrade_id -> level
     city_demand: int = 100  # Base demand percentage (affects crowd size)
     genre_trend: Dict[str, int] = None  # performer_type.value -> trend modifier (-20..+20)
@@ -166,7 +211,6 @@ class GameState:
     event_cooldowns: Dict[str, int] = None  # event_id -> day_available_again
     event_history: List[str] = None
     last_event_day: int = 0
->>>>>>> bdced82 (Add automation manager system)
     
     def __post_init__(self):
         if self.performers is None:
@@ -177,8 +221,6 @@ class GameState:
             self.story_flags = {}
         if self.completed_events is None:
             self.completed_events = []
-<<<<<<< HEAD
-=======
         if self.upgrades is None:
             self.upgrades = {}
         if self.genre_trend is None:
@@ -190,7 +232,6 @@ class GameState:
             self.event_history = []
         if self.last_event_day is None:
             self.last_event_day = 0
->>>>>>> bdced82 (Add automation manager system)
 
 
 class ClubManager:
@@ -200,14 +241,13 @@ class ClubManager:
         self.state = GameState()
         self.running = True
         self.save_file = "savegame.json"
-<<<<<<< HEAD
-=======
         self.auto_manager = None  # Initialize automation manager
         # Ensure critical staff roles exist for a functional club
         self.ensure_bouncer(initial=True)
         self.upgrade_catalog = self._build_upgrade_catalog()
         self.promotion_catalog = self._build_promotion_catalog()
         self.event_registry = self._build_event_registry()
+        self._register_existing_names()
 
     def _build_upgrade_catalog(self) -> Dict[str, Dict]:
         """Define available club upgrades.
@@ -429,6 +469,91 @@ class ClubManager:
         if buffs.get("demand_boost", 0) > 0:
             self.state.city_demand = min(140, self.state.city_demand + 5)
 
+    def generate_patrons(self) -> List[Patron]:
+        """Create a nightly crowd based on demand, reputation, and upgrades."""
+        base_crowd = random.randint(18, 32)
+        demand_scale = self.state.city_demand / 100.0
+        reputation_scale = 0.6 + (self.state.reputation / 120.0)
+        vip_bonus = 1.0 + 0.12 * self.state.upgrades.get("vip_lounge", 0)
+        marketing_bonus = 1.0 + 0.15 * self.state.upgrades.get("marketing", 0)
+        risk_bonus = {
+            "conservative": 0.9,
+            "standard": 1.0,
+            "bold": 1.08,
+        }[self.state.risk_level]
+
+        projected_size = int(base_crowd * demand_scale * reputation_scale * marketing_bonus * risk_bonus)
+        projected_size = int(projected_size * vip_bonus)
+        crowd_size = max(6, min(120, projected_size))
+
+        archetype_weights = {
+            "general": 5.0,
+            "high_roller": 1.5 + self.state.upgrades.get("vip_lounge", 0) * 0.9,
+            "critic": 1.2 if self.state.reputation > 60 else 0.6,
+            "influencer": 1.0 + self.state.upgrades.get("marketing", 0) * 0.8,
+            "trendsetter": 1.0 + max(0, self.state.genre_trend.get(PerformerType.DJ.value, 0)) / 25.0,
+        }
+
+        archetypes = list(archetype_weights.keys())
+        weights = [max(0.1, w) for w in archetype_weights.values()]
+        local_names: Set[str] = set()
+        patrons: List[Patron] = []
+
+        for _ in range(crowd_size):
+            archetype = random.choices(archetypes, weights=weights, k=1)[0]
+            full_name = generate_full_name(local_names)
+
+            base_mood = random.randint(5, 8)
+            base_spending = random.randint(60, 140)
+
+            if archetype == "high_roller":
+                base_mood += random.randint(1, 2)
+                base_spending = random.randint(220, 420)
+            elif archetype == "critic":
+                base_mood = max(4, base_mood - random.randint(1, 2))
+                base_spending = random.randint(150, 250)
+            elif archetype == "influencer":
+                base_mood += 1
+                base_spending = random.randint(120, 220)
+            elif archetype == "trendsetter":
+                base_mood += random.choice([0, 1, 2])
+                base_spending = random.randint(130, 240)
+
+            if self.state.upgrades.get("sound_system", 0):
+                base_mood += 1
+
+            mood = min(10, base_mood + random.randint(-1, 2))
+            spending_power = max(50, base_spending)
+
+            patrons.append(Patron(name=full_name, mood=mood, spending_power=spending_power, archetype=archetype))
+
+        return patrons
+
+    def calculate_crowd_bonus(self, patrons: List[Patron]) -> int:
+        """Calculate nightly revenue bonus derived from the current patrons."""
+        if not patrons:
+            return 0
+
+        total_spending = sum(p.spending_power for p in patrons)
+        average_mood = sum(p.mood for p in patrons) / len(patrons)
+        demand_factor = self.state.city_demand / 100.0
+        vip_bonus = 1.0 + 0.1 * self.state.upgrades.get("vip_lounge", 0)
+        marketing_bonus = 1.0 + 0.05 * self.state.upgrades.get("marketing", 0)
+
+        mood_multiplier = 0.08 + (average_mood / 120.0)
+        bonus = int(total_spending * mood_multiplier * demand_factor * vip_bonus * marketing_bonus)
+
+        if self.state.risk_level == "bold":
+            bonus = int(bonus * 1.1)
+        elif self.state.risk_level == "conservative":
+            bonus = int(bonus * 0.9)
+
+        buffs = self.get_active_buffs()
+        if buffs.get("spending_power", 0) > 0:
+            bonus = int(bonus * (1.0 + 0.08 * buffs["spending_power"]))
+
+        return max(0, bonus)
+
     def set_risk_level(self):
         """Prompt user for nightly risk appetite."""
         print("\nSelect nightly risk level:")
@@ -515,31 +640,40 @@ class ClubManager:
             # If added mid-game, simulate hiring cost (one week advance)
             self.state.money -= bouncer.salary * 7
         print(f"\n[+] Security hired: {name} (Bouncer)")
->>>>>>> bdced82 (Add automation manager system)
+        _USED_FULL_NAMES.add(name)
         
+    def _register_existing_names(self, reset: bool = False) -> None:
+        """Register performer names so generated names remain unique."""
+        if reset:
+            _USED_FULL_NAMES.clear()
+        for performer in self.state.performers:
+            name = performer.get("name")
+            if name:
+                _USED_FULL_NAMES.add(name)
+
     def save_game(self):
         """Save current game state"""
+        performers_serialized = [_serialize_performer_dict(p) for p in self.state.performers]
         save_data = {
-            'day': self.state.day,
-            'money': self.state.money,
-            'reputation': self.state.reputation,
-            'ethics_score': self.state.ethics_score,
-            'performers': self.state.performers,
-            'relationships': self.state.relationships,
-            'story_flags': self.state.story_flags,
-            'completed_events': self.state.completed_events
-<<<<<<< HEAD
-=======
-            ,'upgrades': self.state.upgrades,
-            'city_demand': self.state.city_demand,
-            'genre_trend': self.state.genre_trend,
-            'risk_level': self.state.risk_level,
-            'event_cooldowns': self.state.event_cooldowns,
-            'event_history': self.state.event_history,
-            'last_event_day': self.state.last_event_day
->>>>>>> bdced82 (Add automation manager system)
+            "day": self.state.day,
+            "money": self.state.money,
+            "reputation": self.state.reputation,
+            "ethics_score": self.state.ethics_score,
+            "performers": performers_serialized,
+            "relationships": self.state.relationships,
+            "story_flags": self.state.story_flags,
+            "completed_events": self.state.completed_events,
+            "upgrades": self.state.upgrades,
+            "city_demand": self.state.city_demand,
+            "genre_trend": self.state.genre_trend,
+            "risk_level": self.state.risk_level,
+            "event_cooldowns": self.state.event_cooldowns,
+            "event_history": self.state.event_history,
+            "last_event_day": self.state.last_event_day,
         }
-        with open(self.save_file, 'w') as f:
+        save_data["checksum"] = compute_checksum(save_data)
+
+        with open(self.save_file, "w", encoding="utf-8") as f:
             json.dump(save_data, f, indent=2)
         print("\n✓ Game saved successfully!")
     
@@ -549,18 +683,22 @@ class ClubManager:
             return False
         
         try:
-            with open(self.save_file, 'r') as f:
+            with open(self.save_file, "r", encoding="utf-8") as f:
                 save_data = json.load(f)
-            
+
+            checksum = save_data.get("checksum")
+            if checksum and checksum != compute_checksum(save_data):
+                raise ValueError("Save file integrity check failed")
+
             self.state.day = save_data['day']
             self.state.money = save_data['money']
             self.state.reputation = save_data['reputation']
             self.state.ethics_score = save_data['ethics_score']
-<<<<<<< HEAD
-            self.state.performers = save_data['performers']
-=======
-            # Restore performers and enum fields
-            restored_performers = [_deserialize_performer_dict(p) for p in save_data['performers']]
+            restored_performers = []
+            for record in save_data.get('performers', []):
+                performer_dict = _deserialize_performer_dict(record)
+                performer_dict.setdefault('promotion_level', 0)
+                restored_performers.append(performer_dict)
             self.state.performers = restored_performers
             self.state.upgrades = save_data.get('upgrades', {})
             self.state.city_demand = save_data.get('city_demand', 100)
@@ -569,10 +707,11 @@ class ClubManager:
             self.state.event_cooldowns = save_data.get('event_cooldowns', {})
             self.state.event_history = save_data.get('event_history', [])
             self.state.last_event_day = save_data.get('last_event_day', 0)
->>>>>>> bdced82 (Add automation manager system)
             self.state.relationships = save_data['relationships']
             self.state.story_flags = save_data['story_flags']
             self.state.completed_events = save_data['completed_events']
+
+            self._register_existing_names(reset=True)
             
             print("\n✓ Game loaded successfully!")
             return True
@@ -610,14 +749,6 @@ class ClubManager:
             
             performer_type = list(PerformerType)[choice_idx]
             
-            # Generate random candidate with diverse characteristics
-            first_names = [
-                "Alex", "Jordan", "Casey", "Morgan", "Riley", "Taylor", 
-                "Quinn", "Blake", "Avery", "Cameron", "Sam", "Jamie",
-                "Dakota", "Sage", "River", "Phoenix", "Skylar", "Rowan",
-                "Jesse", "Charlie", "Drew", "Harper", "Emerson", "Reese"
-            ]
-            
             # Generate random gender identity
             gender = random.choice(list(Gender))
             
@@ -625,7 +756,7 @@ class ClubManager:
             num_traits = random.randint(2, 3)
             traits = random.sample(PERSONALITY_TRAITS, num_traits)
             
-            name = random.choice(first_names) + f" #{random.randint(100, 999)}"
+            name = generate_full_name()
             skill = random.randint(3, 8)
             salary = skill * 100 + random.randint(50, 150)
             
@@ -725,8 +856,16 @@ class ClubManager:
             print("2. Let rest (+3 energy)")
             print("3. Talk (improve relationship)")
             print("4. View detailed profile")
-            print("5. Fire performer")
-            print("6. Back")
+            strip_status = "ON" if perf.offers_striptease else "OFF"
+            print(f"5. Toggle striptease bookings [{strip_status}]")
+            if perf.performer_type == PerformerType.DANCER:
+                stripe_status = "ON" if perf.dancer_strip_routine else "OFF"
+                print(f"6. Toggle signature striping [{stripe_status}]")
+                print("7. Fire performer")
+                print("8. Back")
+            else:
+                print("6. Fire performer")
+                print("7. Back")
             
             action = input("\nChoose action: ").strip()
             
@@ -795,6 +934,36 @@ class ClubManager:
                 input("\nPress Enter to continue...")
             
             elif action == '5':
+                current_rel = self.state.relationships.get(perf.name, 5)
+                if not perf.offers_striptease:
+                    if current_rel < 6 or perf.loyalty < 6:
+                        print("\n✗ They need more trust before agreeing to that routine.")
+                        continue
+                    perf.offers_striptease = True
+                    self.state.ethics_score = max(0, self.state.ethics_score - 2)
+                    self.state.reputation = min(100, self.state.reputation + 1)
+                    print(f"\n✓ {perf.name} adds a tasteful striptease set to their bookings.")
+                else:
+                    perf.offers_striptease = False
+                    perf.dancer_strip_routine = False
+                    print(f"\n✓ {perf.name} retires the striptease routine for now.")
+
+            elif perf.performer_type == PerformerType.DANCER and action == '6':
+                if not perf.offers_striptease:
+                    print("\n✗ Enable striptease bookings first before planning striping effects.")
+                    continue
+                if not perf.dancer_strip_routine:
+                    perf.dancer_strip_routine = True
+                    self.state.ethics_score = max(0, self.state.ethics_score - 1)
+                    self.state.reputation = min(100, self.state.reputation + 1)
+                    print(f"\n✓ {perf.name} debuts an artistic striping showcase for the dance floor.")
+                else:
+                    perf.dancer_strip_routine = False
+                    print(f"\n✓ {perf.name} shelves the striping showcase for now.")
+
+            elif (perf.performer_type == PerformerType.DANCER and action == '7') or (
+                perf.performer_type != PerformerType.DANCER and action == '6'
+            ):
                 confirm = input(f"\nAre you sure you want to fire {perf.name}? (y/n): ").strip().lower()
                 if confirm == 'y':
                     self.state.performers.pop(idx)
@@ -803,10 +972,14 @@ class ClubManager:
                     self.state.ethics_score = max(0, self.state.ethics_score - 5)
                     return
             
-            elif action == '6':
+            elif (perf.performer_type == PerformerType.DANCER and action == '8') or (
+                perf.performer_type != PerformerType.DANCER and action == '7'
+            ):
                 # Save changes back
                 self.state.performers[idx] = asdict(perf)
                 return
+            else:
+                print("Invalid input!")
             
             # Update performer data
             self.state.performers[idx] = asdict(perf)
@@ -823,7 +996,7 @@ class ClubManager:
         total_income = 0
         total_expenses = 0
         
-        for perf_data in self.state.performers:
+        for idx, perf_data in enumerate(self.state.performers):
             perf = Performer(**perf_data)
             income = perf.work()
             total_expenses += perf.salary
@@ -847,20 +1020,25 @@ class ClubManager:
                     trait_msg = " (Charismatic: +5%)"
                 
                 income += bonus
+
+                sensual_bonus, ethics_delta, reputation_delta, notes = perf.perform_sensual_show(income)
+                if sensual_bonus:
+                    income += sensual_bonus
+                if ethics_delta:
+                    self.state.ethics_score = max(0, min(100, self.state.ethics_score + ethics_delta))
+                if reputation_delta:
+                    self.state.reputation = max(0, min(100, self.state.reputation + reputation_delta))
+
                 total_income += income
                 print(f"✓ {perf.name} ({perf.gender.value}) performed well! Income: ${income}{trait_msg}")
+                for note in notes:
+                    print(f"   {note}")
             else:
                 print(f"✗ {perf.name} ({perf.gender.value}) was too tired to perform.")
             
             # Update performer data
-            idx = self.state.performers.index(perf_data)
             self.state.performers[idx] = asdict(perf)
-        
-<<<<<<< HEAD
-        # Random event chance
-        if random.random() < 0.3:
-            self.trigger_random_event()
-=======
+
         # Random event chance with bouncer mitigation
         base_event_prob = 0.3
         if self.has_bouncer():
@@ -876,7 +1054,6 @@ class ClubManager:
             if self.trigger_random_event():
                 if self.state.risk_level == "bold" and random.random() < 0.35:
                     self.trigger_random_event(chain_depth=1)
->>>>>>> bdced82 (Add automation manager system)
         
         net_income = total_income - total_expenses
         self.state.money += net_income
@@ -894,19 +1071,6 @@ class ClubManager:
         
         input("\nPress Enter to continue...")
     
-<<<<<<< HEAD
-    def trigger_random_event(self):
-        """Trigger a random event during club operation"""
-        events = [
-            self.event_vip_visitor,
-            self.event_equipment_failure,
-            self.event_rival_club,
-            self.event_performer_conflict
-        ]
-        
-        event = random.choice(events)
-        event()
-=======
     def _event_meets_prerequisites(self, event_id: str, meta: Dict, chain_depth: int) -> bool:
         cooldown_until = self.state.event_cooldowns.get(event_id, 0)
         if self.state.day < cooldown_until:
@@ -1060,7 +1224,6 @@ class ClubManager:
         if len(self.state.event_history) > MAX_EVENT_HISTORY:
             self.state.event_history = self.state.event_history[-MAX_EVENT_HISTORY:]
         return True
->>>>>>> bdced82 (Add automation manager system)
     
     def event_vip_visitor(self, context: Dict):
         """A VIP visitor arrives"""
@@ -1109,9 +1272,6 @@ class ClubManager:
         print("Your sound system has failed mid-performance!")
         print(f"Severity assessment: {severity.capitalize()}.")
         
-<<<<<<< HEAD
-        repair_cost = 500
-=======
         ss_lvl = self.state.upgrades.get("sound_system", 0)
         base_cost = random.randint(420, 680)
         repair_cost = max(100, int(base_cost * intensity))
@@ -1122,7 +1282,6 @@ class ClubManager:
         continue_ethics_loss = max(2, int(3 * intensity))
         cancel_ethics_gain = random.randint(3, 6)
         repair_ethics_gain = random.randint(2, 4)
->>>>>>> bdced82 (Add automation manager system)
         
         print(f"\n1. Pay for immediate repair (${repair_cost})")
         print(f"2. Cancel the night (refund customers, -{cancel_rep_loss} reputation, +{cancel_ethics_gain} ethics)")
@@ -1149,9 +1308,6 @@ class ClubManager:
         
         input("\nPress Enter to continue...")
     
-<<<<<<< HEAD
-    def event_rival_club(self):
-=======
     def event_talent_scout(self, context: Dict):
         """A talent scout is interested in one of your performers."""
         if not self.state.performers:
@@ -1336,7 +1492,6 @@ class ClubManager:
         input("\nPress Enter to continue...")
     
     def event_rival_club(self, context: Dict):
->>>>>>> bdced82 (Add automation manager system)
         """Rival club tries to poach performers"""
         if not self.state.performers:
             return
@@ -1705,19 +1860,12 @@ class ClubManager:
             print("1. Recruit Performer")
             print("2. Manage Performers")
             print("3. Run Club Night")
-<<<<<<< HEAD
-            print("4. Advance Day")
-            print("5. View Statistics")
-            print("6. Save Game")
-            print("7. Exit Game")
-=======
             print("4. Manage Upgrades")
             print("5. Advance Day")
             print("6. View Statistics")
             print("7. Automation Manager")
             print("8. Save Game")
             print("9. Exit Game")
->>>>>>> bdced82 (Add automation manager system)
             
             choice = input("\nChoose an action: ").strip()
             
@@ -1728,20 +1876,16 @@ class ClubManager:
             elif choice == '3':
                 self.run_club_night()
             elif choice == '4':
-                self.advance_day()
+                self.manage_upgrades()
             elif choice == '5':
-                self.view_stats()
-<<<<<<< HEAD
+                self.advance_day()
             elif choice == '6':
-                self.save_game()
-            elif choice == '7':
-=======
+                self.view_stats()
             elif choice == '7':
                 self.automation_menu()
             elif choice == '8':
                 self.save_game()
             elif choice == '9':
->>>>>>> bdced82 (Add automation manager system)
                 save = input("\nSave before exiting? (y/n): ").strip().lower()
                 if save == 'y':
                     self.save_game()
