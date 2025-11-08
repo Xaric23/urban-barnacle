@@ -66,6 +66,15 @@ npm run build
 npm start
 ```
 
+### Build as Executable (Windows)
+To create a standalone Windows .exe file:
+
+```bash
+npm run build-exe
+```
+
+The installer will be created in the `dist` folder. See [BUILD_EXE.md](BUILD_EXE.md) for detailed instructions.
+
 ## 🎯 How to Play
 
 ### Starting Resources
