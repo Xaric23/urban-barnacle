@@ -40,7 +40,30 @@ export function loadGameState(): GameState | null {
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem('clubManagerSave');
     if (saved) {
-      return JSON.parse(saved);
+      const state = JSON.parse(saved) as GameState;
+      
+      // Backward compatibility: ensure new fields exist
+      if (!state.ownedClothing) {
+        state.ownedClothing = [];
+      }
+      
+      // Ensure all performers have wardrobe and tipsEarned
+      state.performers = state.performers.map(p => {
+        if (!p.wardrobe) {
+          p.wardrobe = {
+            [ClothingSlot.TOP]: null,
+            [ClothingSlot.BOTTOM]: null,
+            [ClothingSlot.SHOES]: null,
+            [ClothingSlot.ACCESSORY]: null,
+          };
+        }
+        if (p.tipsEarned === undefined) {
+          p.tipsEarned = 0;
+        }
+        return p;
+      });
+      
+      return state;
     }
   }
   return null;
