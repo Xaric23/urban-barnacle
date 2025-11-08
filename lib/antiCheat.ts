@@ -13,27 +13,38 @@ const SAVE_SALT = "v1|NightclubGameSalt|DoNotModify";
  * This matches the Python implementation in game.py
  */
 export async function generateChecksum(data: Record<string, unknown>): Promise<string> {
-  // Filter out checksum field and sort keys (matches Python behavior)
-  const filtered: Record<string, unknown> = {};
-  Object.keys(data)
-    .filter(k => k !== 'checksum')
-    .sort()
-    .forEach(k => {
-      filtered[k] = data[k];
-    });
+  try {
+    // Check if crypto.subtle is available
+    if (typeof crypto === 'undefined' || typeof crypto.subtle === 'undefined') {
+      console.warn('crypto.subtle not available, using sync fallback');
+      return generateChecksumSync(data);
+    }
 
-  // Serialize with consistent formatting (matches Python: separators=(",", ":"), sort_keys=True)
-  const serialized = JSON.stringify(filtered, Object.keys(filtered).sort());
-  const message = SAVE_SALT + serialized;
+    // Filter out checksum field and sort keys (matches Python behavior)
+    const filtered: Record<string, unknown> = {};
+    Object.keys(data)
+      .filter(k => k !== 'checksum')
+      .sort()
+      .forEach(k => {
+        filtered[k] = data[k];
+      });
 
-  // Use Web Crypto API for SHA-256
-  const encoder = new TextEncoder();
-  const msgBuffer = encoder.encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  return hashHex;
+    // Serialize with consistent formatting (matches Python: separators=(",", ":"), sort_keys=True)
+    const serialized = JSON.stringify(filtered, Object.keys(filtered).sort());
+    const message = SAVE_SALT + serialized;
+
+    // Use Web Crypto API for SHA-256
+    const encoder = new TextEncoder();
+    const msgBuffer = encoder.encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    return hashHex;
+  } catch (error) {
+    console.warn('Error during async checksum generation, falling back to sync:', error);
+    return generateChecksumSync(data);
+  }
 }
 
 /**
@@ -259,47 +270,52 @@ export interface SecureSave {
 }
 
 export async function createSecureSave(state: GameState): Promise<SecureSave> {
-  const saveData: Omit<SecureSave, 'checksum'> = {
-    version: '1.0.0',
-    timestamp: Date.now(),
-    day: state.day,
-    money: state.money,
-    reputation: state.reputation,
-    ethicsScore: state.ethicsScore,
-    performers: state.performers,
-    relationships: state.relationships,
-    storyFlags: state.storyFlags,
-    completedEvents: state.completedEvents,
-    upgrades: state.upgrades,
-    cityDemand: state.cityDemand,
-    genreTrend: state.genreTrend,
-    riskLevel: state.riskLevel,
-    eventCooldowns: state.eventCooldowns,
-    eventHistory: state.eventHistory,
-    lastEventDay: state.lastEventDay,
-    ownedClothing: state.ownedClothing,
-    crowdMood: state.crowdMood,
-    seasonalTrends: state.seasonalTrends,
-    viralTrends: state.viralTrends,
-    activeRumors: state.activeRumors,
-    dramaLevel: state.dramaLevel,
-    stageProps: state.stageProps,
-    activeEffects: state.activeEffects,
-    maintenanceCost: state.maintenanceCost,
-    rivalClubs: state.rivalClubs,
-    fame: state.fame,
-    camShowBranch: state.camShowBranch,
-    vipWebsite: state.vipWebsite,
-    managedTroupes: state.managedTroupes,
-    availableCards: state.availableCards,
-    usedCardsThisNight: state.usedCardsThisNight,
-  };
+  try {
+    const saveData: Omit<SecureSave, 'checksum'> = {
+      version: '1.0.0',
+      timestamp: Date.now(),
+      day: state.day,
+      money: state.money,
+      reputation: state.reputation,
+      ethicsScore: state.ethicsScore,
+      performers: state.performers,
+      relationships: state.relationships,
+      storyFlags: state.storyFlags,
+      completedEvents: state.completedEvents,
+      upgrades: state.upgrades,
+      cityDemand: state.cityDemand,
+      genreTrend: state.genreTrend,
+      riskLevel: state.riskLevel,
+      eventCooldowns: state.eventCooldowns,
+      eventHistory: state.eventHistory,
+      lastEventDay: state.lastEventDay,
+      ownedClothing: state.ownedClothing,
+      crowdMood: state.crowdMood,
+      seasonalTrends: state.seasonalTrends,
+      viralTrends: state.viralTrends,
+      activeRumors: state.activeRumors,
+      dramaLevel: state.dramaLevel,
+      stageProps: state.stageProps,
+      activeEffects: state.activeEffects,
+      maintenanceCost: state.maintenanceCost,
+      rivalClubs: state.rivalClubs,
+      fame: state.fame,
+      camShowBranch: state.camShowBranch,
+      vipWebsite: state.vipWebsite,
+      managedTroupes: state.managedTroupes,
+      availableCards: state.availableCards,
+      usedCardsThisNight: state.usedCardsThisNight,
+    };
 
-  const checksum = await generateChecksum(saveData as Record<string, unknown>);
-  return {
-    ...saveData,
-    checksum,
-  };
+    const checksum = await generateChecksum(saveData as Record<string, unknown>);
+    return {
+      ...saveData,
+      checksum,
+    };
+  } catch (error) {
+    console.error('Error during async save creation, falling back to sync:', error);
+    return createSecureSaveSync(state);
+  }
 }
 
 /**
@@ -354,59 +370,64 @@ export function createSecureSaveSync(state: GameState): SecureSave {
  * Matches Python implementation: raises ValueError if integrity check fails
  */
 export async function verifySecureSave(save: SecureSave): Promise<{ valid: boolean; reason?: string }> {
-  // Verify checksum exists
-  if (!save.checksum) {
-    return { valid: false, reason: 'Save file integrity check failed: no checksum' };
+  try {
+    // Verify checksum exists
+    if (!save.checksum) {
+      return { valid: false, reason: 'Save file integrity check failed: no checksum' };
+    }
+
+    // Compute current checksum
+    const currentChecksum = await generateChecksum(save as unknown as Record<string, unknown>);
+    if (currentChecksum !== save.checksum) {
+      return { valid: false, reason: 'Save file integrity check failed: checksum mismatch' };
+    }
+
+    // Convert save to GameState for validation
+    const gameState: GameState = {
+      day: save.day,
+      money: save.money,
+      reputation: save.reputation,
+      ethicsScore: save.ethicsScore,
+      performers: save.performers,
+      relationships: save.relationships || {},
+      storyFlags: save.storyFlags || {},
+      completedEvents: save.completedEvents || [],
+      upgrades: save.upgrades,
+      cityDemand: save.cityDemand,
+      genreTrend: save.genreTrend,
+      riskLevel: save.riskLevel as "conservative" | "standard" | "bold",
+      eventCooldowns: save.eventCooldowns,
+      eventHistory: save.eventHistory,
+      lastEventDay: save.lastEventDay,
+      ownedClothing: save.ownedClothing || [],
+      crowdMood: save.crowdMood || {},
+      seasonalTrends: save.seasonalTrends || [],
+      viralTrends: save.viralTrends || [],
+      activeRumors: save.activeRumors || [],
+      dramaLevel: save.dramaLevel || 0,
+      stageProps: save.stageProps || [],
+      activeEffects: save.activeEffects || [],
+      maintenanceCost: save.maintenanceCost || 0,
+      rivalClubs: save.rivalClubs || [],
+      fame: save.fame || 0,
+      camShowBranch: save.camShowBranch || false,
+      vipWebsite: save.vipWebsite || false,
+      managedTroupes: save.managedTroupes || [],
+      availableCards: save.availableCards || [],
+      usedCardsThisNight: save.usedCardsThisNight || [],
+    };
+
+    // Validate game state
+    const validation = validateGameState(gameState);
+    if (!validation.valid) {
+      return { valid: false, reason: `Invalid game state: ${validation.errors.join('; ')}` };
+    }
+
+    return { valid: true };
+  } catch (error) {
+    console.error('Error during save verification:', error);
+    return { valid: false, reason: `Verification error: ${error instanceof Error ? error.message : 'Unknown error'}` };
   }
-
-  // Compute current checksum
-  const currentChecksum = await generateChecksum(save as unknown as Record<string, unknown>);
-  if (currentChecksum !== save.checksum) {
-    return { valid: false, reason: 'Save file integrity check failed: checksum mismatch' };
-  }
-
-  // Convert save to GameState for validation
-  const gameState: GameState = {
-    day: save.day,
-    money: save.money,
-    reputation: save.reputation,
-    ethicsScore: save.ethicsScore,
-    performers: save.performers,
-    relationships: save.relationships || {},
-    storyFlags: save.storyFlags || {},
-    completedEvents: save.completedEvents || [],
-    upgrades: save.upgrades,
-    cityDemand: save.cityDemand,
-    genreTrend: save.genreTrend,
-    riskLevel: save.riskLevel as "conservative" | "standard" | "bold",
-    eventCooldowns: save.eventCooldowns,
-    eventHistory: save.eventHistory,
-    lastEventDay: save.lastEventDay,
-    ownedClothing: save.ownedClothing || [],
-    crowdMood: save.crowdMood || {},
-    seasonalTrends: save.seasonalTrends || [],
-    viralTrends: save.viralTrends || [],
-    activeRumors: save.activeRumors || [],
-    dramaLevel: save.dramaLevel || 0,
-    stageProps: save.stageProps || [],
-    activeEffects: save.activeEffects || [],
-    maintenanceCost: save.maintenanceCost || 0,
-    rivalClubs: save.rivalClubs || [],
-    fame: save.fame || 0,
-    camShowBranch: save.camShowBranch || false,
-    vipWebsite: save.vipWebsite || false,
-    managedTroupes: save.managedTroupes || [],
-    availableCards: save.availableCards || [],
-    usedCardsThisNight: save.usedCardsThisNight || [],
-  };
-
-  // Validate game state
-  const validation = validateGameState(gameState);
-  if (!validation.valid) {
-    return { valid: false, reason: `Invalid game state: ${validation.errors.join('; ')}` };
-  }
-
-  return { valid: true };
 }
 
 /**
