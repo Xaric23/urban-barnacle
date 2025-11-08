@@ -8,10 +8,14 @@ import ManagePerformers from '@/components/ManagePerformers';
 import RunClubNight from '@/components/RunClubNight';
 import ViewStats from '@/components/ViewStats';
 import UpgradeShop from '@/components/UpgradeShop';
+import DramaManager from '@/components/DramaManager';
+import StageCustomizer from '@/components/StageCustomizer';
+import ExpansionDashboard from '@/components/ExpansionDashboard';
+import CrowdMoodDashboard from '@/components/CrowdMoodDashboard';
 import { GameState } from '@/lib/types';
-import { createInitialGameState, saveGameState, loadGameState, advanceDay } from '@/lib/gameLogic';
+import { createInitialGameState, saveGameState, loadGameState, advanceDay, updateChemistryForAllPerformers, updateCrowdMood, checkForViralTrend, applySeasonalTrends, generateRumor, checkForSabotage, calculateExpansionIncome, updateFame, checkForCelebrityCameo } from '@/lib/gameLogic';
 
-type GameView = 'menu' | 'recruit' | 'manage' | 'run' | 'stats' | 'upgrades';
+type GameView = 'menu' | 'recruit' | 'manage' | 'run' | 'stats' | 'upgrades' | 'drama' | 'stage' | 'expansions' | 'trends';
 
 export default function Home() {
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -37,7 +41,54 @@ export default function Home() {
   const handleAdvanceDay = () => {
     if (gameState) {
       const newState = { ...gameState };
+      
+      // Update chemistry for all performers
+      updateChemistryForAllPerformers(newState.performers);
+      
+      // Update crowd mood and trends
+      updateCrowdMood(newState);
+      applySeasonalTrends(newState);
+      const viralTrend = checkForViralTrend(newState);
+      
+      // Generate rumors
+      const rumor = generateRumor(newState);
+      if (rumor) {
+        newState.activeRumors.push(rumor);
+        newState.dramaLevel = Math.min(100, newState.dramaLevel + 5);
+      }
+      
+      // Check for sabotage
+      const sabotage = checkForSabotage(newState);
+      
+      // Calculate expansion income
+      const expansionIncome = calculateExpansionIncome(newState);
+      newState.money += expansionIncome.income;
+      
+      // Advance day (pays salaries, etc.)
       advanceDay(newState);
+      
+      // Apply maintenance costs
+      newState.money -= newState.maintenanceCost;
+      
+      // Build event messages
+      const messages: string[] = [];
+      if (viralTrend) messages.push(`🔥 Viral Trend Alert: ${viralTrend} is trending!`);
+      if (rumor) messages.push(`🎭 New Rumor: ${rumor.title}`);
+      if (sabotage) messages.push(`⚠️ SABOTAGE: ${sabotage.message}`);
+      if (expansionIncome.income > 0) messages.push(...expansionIncome.messages);
+      
+      // Check for celebrity cameo
+      const cameo = checkForCelebrityCameo(newState);
+      if (cameo) {
+        messages.push(`⭐ Celebrity Cameo: ${cameo.celebrity} visited your club! +$${cameo.bonus}`);
+        newState.money += cameo.bonus;
+        newState.fame = Math.min(100, newState.fame + 5);
+      }
+      
+      // Show messages
+      if (messages.length > 0) {
+        alert("Day " + newState.day + " Events:\n\n" + messages.join('\n'));
+      }
       
       if (newState.money < 0) {
         alert("💀 GAME OVER! You ran out of money!");
@@ -158,7 +209,46 @@ export default function Home() {
               onBack={() => setCurrentView('menu')}
             />
           )}
+          
+          {currentView === 'drama' && (
+            <DramaManager
+              state={gameState}
+              onUpdate={setGameState}
+            />
+          )}
+          
+          {currentView === 'stage' && (
+            <StageCustomizer
+              state={gameState}
+              onUpdate={setGameState}
+            />
+          )}
+          
+          {currentView === 'expansions' && (
+            <ExpansionDashboard
+              state={gameState}
+              onUpdate={setGameState}
+            />
+          )}
+          
+          {currentView === 'trends' && (
+            <CrowdMoodDashboard
+              state={gameState}
+            />
+          )}
         </div>
+        
+        {/* Back button for new views */}
+        {(currentView === 'drama' || currentView === 'stage' || currentView === 'expansions' || currentView === 'trends') && (
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => setCurrentView('menu')}
+              className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition"
+            >
+              ← Back to Menu
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
