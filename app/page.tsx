@@ -9,8 +9,12 @@ import RunClubNight from '@/components/RunClubNight';
 import ViewStats from '@/components/ViewStats';
 import UpgradeShop from '@/components/UpgradeShop';
 import LoadingScreen from '@/components/LoadingScreen';
+import DramaManager from '@/components/DramaManager';
+import StageCustomizer from '@/components/StageCustomizer';
+import ExpansionDashboard from '@/components/ExpansionDashboard';
+import CrowdMoodDashboard from '@/components/CrowdMoodDashboard';
 import { GameState } from '@/lib/types';
-import { createInitialGameState, advanceDay } from '@/lib/gameLogic';
+import { createInitialGameState, advanceDay, updateChemistryForAllPerformers, updateCrowdMood, applySeasonalTrends, checkForViralTrend, generateRumor, checkForSabotage, calculateExpansionIncome, checkForCelebrityCameo } from '@/lib/gameLogic';
 import { bootstrapGame, saveToStorage, deleteSave, BootstrapState, BootstrapStatus } from '@/lib/bootstrap';
 
 type GameView = 'menu' | 'recruit' | 'manage' | 'run' | 'stats' | 'upgrades' | 'drama' | 'stage' | 'expansions' | 'trends';

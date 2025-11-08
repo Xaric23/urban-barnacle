@@ -2,7 +2,7 @@
 // Validates game state integrity and prevents tampering
 // Ported and enhanced from Python game.py implementation
 
-import { GameState, Performer } from './types';
+import { GameState, Performer, Rumor, StageProp, RivalClub, SkillCard } from './types';
 
 // Salt for checksum computation - changing this invalidates all saves
 // Matches Python implementation: _SAVE_SALT = "v1|NightclubGameSalt|DoNotModify"
@@ -241,6 +241,21 @@ export interface SecureSave {
   eventHistory: string[];
   lastEventDay: number;
   ownedClothing?: string[];
+  crowdMood?: Record<string, number>;
+  seasonalTrends?: string[];
+  viralTrends?: string[];
+  activeRumors?: Rumor[];
+  dramaLevel?: number;
+  stageProps?: StageProp[];
+  activeEffects?: string[];
+  maintenanceCost?: number;
+  rivalClubs?: RivalClub[];
+  fame?: number;
+  camShowBranch?: boolean;
+  vipWebsite?: boolean;
+  managedTroupes?: string[];
+  availableCards?: SkillCard[];
+  usedCardsThisNight?: string[];
 }
 
 export async function createSecureSave(state: GameState): Promise<SecureSave> {
@@ -263,6 +278,21 @@ export async function createSecureSave(state: GameState): Promise<SecureSave> {
     eventHistory: state.eventHistory,
     lastEventDay: state.lastEventDay,
     ownedClothing: state.ownedClothing,
+    crowdMood: state.crowdMood,
+    seasonalTrends: state.seasonalTrends,
+    viralTrends: state.viralTrends,
+    activeRumors: state.activeRumors,
+    dramaLevel: state.dramaLevel,
+    stageProps: state.stageProps,
+    activeEffects: state.activeEffects,
+    maintenanceCost: state.maintenanceCost,
+    rivalClubs: state.rivalClubs,
+    fame: state.fame,
+    camShowBranch: state.camShowBranch,
+    vipWebsite: state.vipWebsite,
+    managedTroupes: state.managedTroupes,
+    availableCards: state.availableCards,
+    usedCardsThisNight: state.usedCardsThisNight,
   };
 
   const checksum = await generateChecksum(saveData as Record<string, unknown>);
@@ -295,6 +325,21 @@ export function createSecureSaveSync(state: GameState): SecureSave {
     eventHistory: state.eventHistory,
     lastEventDay: state.lastEventDay,
     ownedClothing: state.ownedClothing,
+    crowdMood: state.crowdMood,
+    seasonalTrends: state.seasonalTrends,
+    viralTrends: state.viralTrends,
+    activeRumors: state.activeRumors,
+    dramaLevel: state.dramaLevel,
+    stageProps: state.stageProps,
+    activeEffects: state.activeEffects,
+    maintenanceCost: state.maintenanceCost,
+    rivalClubs: state.rivalClubs,
+    fame: state.fame,
+    camShowBranch: state.camShowBranch,
+    vipWebsite: state.vipWebsite,
+    managedTroupes: state.managedTroupes,
+    availableCards: state.availableCards,
+    usedCardsThisNight: state.usedCardsThisNight,
   };
 
   const checksum = generateChecksumSync(saveData as Record<string, unknown>);
@@ -338,6 +383,21 @@ export async function verifySecureSave(save: SecureSave): Promise<{ valid: boole
     eventHistory: save.eventHistory,
     lastEventDay: save.lastEventDay,
     ownedClothing: save.ownedClothing || [],
+    crowdMood: save.crowdMood || {},
+    seasonalTrends: save.seasonalTrends || [],
+    viralTrends: save.viralTrends || [],
+    activeRumors: save.activeRumors || [],
+    dramaLevel: save.dramaLevel || 0,
+    stageProps: save.stageProps || [],
+    activeEffects: save.activeEffects || [],
+    maintenanceCost: save.maintenanceCost || 0,
+    rivalClubs: save.rivalClubs || [],
+    fame: save.fame || 0,
+    camShowBranch: save.camShowBranch || false,
+    vipWebsite: save.vipWebsite || false,
+    managedTroupes: save.managedTroupes || [],
+    availableCards: save.availableCards || [],
+    usedCardsThisNight: save.usedCardsThisNight || [],
   };
 
   // Validate game state
@@ -382,6 +442,21 @@ export function verifySecureSaveSync(save: SecureSave): { valid: boolean; reason
     eventHistory: save.eventHistory,
     lastEventDay: save.lastEventDay,
     ownedClothing: save.ownedClothing || [],
+    crowdMood: save.crowdMood || {},
+    seasonalTrends: save.seasonalTrends || [],
+    viralTrends: save.viralTrends || [],
+    activeRumors: save.activeRumors || [],
+    dramaLevel: save.dramaLevel || 0,
+    stageProps: save.stageProps || [],
+    activeEffects: save.activeEffects || [],
+    maintenanceCost: save.maintenanceCost || 0,
+    rivalClubs: save.rivalClubs || [],
+    fame: save.fame || 0,
+    camShowBranch: save.camShowBranch || false,
+    vipWebsite: save.vipWebsite || false,
+    managedTroupes: save.managedTroupes || [],
+    availableCards: save.availableCards || [],
+    usedCardsThisNight: save.usedCardsThisNight || [],
   };
 
   // Validate game state
