@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { app, BrowserWindow, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
-const { spawn } = require('child_process');
+const fs = require('fs');
 
 let mainWindow;
 let nextServer;
@@ -91,7 +92,7 @@ function createWindow() {
 
   // Add icon if it exists
   const iconPath = path.join(__dirname, '../public/icon.png');
-  if (require('fs').existsSync(iconPath)) {
+  if (fs.existsSync(iconPath)) {
     windowOptions.icon = iconPath;
   }
 
