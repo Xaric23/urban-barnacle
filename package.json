@@ -31,7 +31,8 @@
     "win": {
       "target": [
         "nsis"
-      ]
+      ],
+      "sign": null
     },
     "nsis": {
       "oneClick": false,
