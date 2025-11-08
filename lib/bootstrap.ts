@@ -161,6 +161,21 @@ export async function bootstrapGame(
     eventHistory: savedData.eventHistory,
     lastEventDay: savedData.lastEventDay,
     ownedClothing: savedData.ownedClothing || [],
+    crowdMood: savedData.crowdMood || {},
+    seasonalTrends: savedData.seasonalTrends || [],
+    viralTrends: savedData.viralTrends || [],
+    activeRumors: savedData.activeRumors || [],
+    dramaLevel: savedData.dramaLevel || 0,
+    stageProps: savedData.stageProps || [],
+    activeEffects: savedData.activeEffects || [],
+    maintenanceCost: savedData.maintenanceCost || 0,
+    rivalClubs: savedData.rivalClubs || [],
+    fame: savedData.fame || 0,
+    camShowBranch: savedData.camShowBranch || false,
+    vipWebsite: savedData.vipWebsite || false,
+    managedTroupes: savedData.managedTroupes || [],
+    availableCards: savedData.availableCards || [],
+    usedCardsThisNight: savedData.usedCardsThisNight || [],
   };
 
   // Check for time manipulation

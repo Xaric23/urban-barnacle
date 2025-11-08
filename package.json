@@ -1,26 +1,61 @@
 {
-  "name": "nextjs-project",
+  "name": "underground-club-manager",
   "version": "0.1.0",
+  "description": "Underground Club Manager - A text-based management game",
+  "author": "Xaric23",
+  "main": "electron/main.js",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "electron": "electron .",
+    "electron-dev": "cross-env NODE_ENV=development electron .",
+    "build-electron": "next build && electron-builder",
+    "build-exe": "next build && electron-builder --win --x64",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.xaric23.underground-club-manager",
+    "productName": "Underground Club Manager",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   },
   "dependencies": {
+    "next": "16.0.1",
     "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "next": "16.0.1"
+    "react-dom": "19.2.0"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
+    "cross-env": "^10.1.0",
+    "electron": "^39.1.1",
+    "electron-builder": "^26.0.12",
     "eslint": "^9",
-    "eslint-config-next": "16.0.1"
+    "eslint-config-next": "16.0.1",
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }
