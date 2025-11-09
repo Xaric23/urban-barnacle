@@ -42,6 +42,7 @@ export interface BootstrapResult {
 export async function bootstrapGame(
   onProgress?: (state: BootstrapState) => void
 ): Promise<BootstrapResult> {
+  console.log('[Bootstrap] Starting bootstrap process...');
   const warnings: string[] = [];
   
   // Step 1: Initialize
@@ -51,9 +52,11 @@ export async function bootstrapGame(
     message: 'Initializing game systems...',
     warnings: [],
   });
+  console.log('[Bootstrap] Step 1: Initializing...');
   await delay(300);
 
   // Step 2: Check for existing save
+  console.log('[Bootstrap] Step 2: Checking for saved game...');
   updateProgress(onProgress, {
     status: BootstrapStatus.VALIDATING,
     progress: 25,
@@ -63,9 +66,11 @@ export async function bootstrapGame(
   await delay(200);
 
   const savedData = loadFromStorage();
+  console.log('[Bootstrap] Saved data:', savedData ? 'Found' : 'Not found');
   
   if (!savedData) {
     // No save found - create new game
+    console.log('[Bootstrap] Creating new game...');
     updateProgress(onProgress, {
       status: BootstrapStatus.LOADING,
       progress: 75,
@@ -75,6 +80,7 @@ export async function bootstrapGame(
     await delay(200);
 
     const newGame = createInitialGameState();
+    console.log('[Bootstrap] Saving new game...');
     await saveToStorage(newGame);
 
     updateProgress(onProgress, {
@@ -83,6 +89,7 @@ export async function bootstrapGame(
       message: 'Game ready!',
       warnings: [],
     });
+    console.log('[Bootstrap] Bootstrap complete - new game created');
 
     return {
       success: true,
@@ -93,6 +100,7 @@ export async function bootstrapGame(
   }
 
   // Step 3: Validate saved data
+  console.log('[Bootstrap] Step 3: Validating save file...');
   updateProgress(onProgress, {
     status: BootstrapStatus.VALIDATING,
     progress: 40,
@@ -104,16 +112,19 @@ export async function bootstrapGame(
   // Try async verification with timeout, fallback to sync if it fails
   let validation: { valid: boolean; reason?: string };
   try {
+    console.log('[Bootstrap] Attempting async verification...');
     validation = await Promise.race([
       verifySecureSave(savedData),
       new Promise<{ valid: boolean; reason: string }>((_, reject) => 
         setTimeout(() => reject(new Error('Verification timeout')), 5000)
       )
     ]);
+    console.log('[Bootstrap] Async verification result:', validation);
   } catch (error) {
-    console.warn('Async verification failed, falling back to sync:', error);
+    console.warn('[Bootstrap] Async verification failed, falling back to sync:', error);
     const { verifySecureSaveSync } = await import('./antiCheat');
     validation = verifySecureSaveSync(savedData);
+    console.log('[Bootstrap] Sync verification result:', validation);
   }
   
   if (!validation.valid) {
@@ -229,24 +240,31 @@ export async function bootstrapGame(
  */
 export async function saveToStorage(state: GameState): Promise<void> {
   if (typeof window === 'undefined') {
+    console.log('[Bootstrap] saveToStorage: window undefined, skipping');
     return;
   }
 
+  console.log('[Bootstrap] saveToStorage: Starting save process...');
+  
   try {
     // Try async save with timeout
+    console.log('[Bootstrap] saveToStorage: Attempting async save...');
     const secureSave = await Promise.race([
       createSecureSave(state),
       new Promise<SecureSave>((_, reject) => 
         setTimeout(() => reject(new Error('Save timeout')), 5000)
       )
     ]);
+    console.log('[Bootstrap] saveToStorage: Async save successful');
     localStorage.setItem('clubManagerSave', JSON.stringify(secureSave));
   } catch (error) {
-    console.warn('Async save failed, falling back to sync:', error);
+    console.warn('[Bootstrap] saveToStorage: Async save failed, falling back to sync:', error);
     const { createSecureSaveSync } = await import('./antiCheat');
     const secureSave = createSecureSaveSync(state);
+    console.log('[Bootstrap] saveToStorage: Sync save successful');
     localStorage.setItem('clubManagerSave', JSON.stringify(secureSave));
   }
+  console.log('[Bootstrap] saveToStorage: Save complete');
 }
 
 /**

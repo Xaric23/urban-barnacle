@@ -14,11 +14,20 @@ const SAVE_SALT = "v1|NightclubGameSalt|DoNotModify";
  */
 export async function generateChecksum(data: Record<string, unknown>): Promise<string> {
   try {
-    // Check if crypto.subtle is available
-    if (typeof crypto === 'undefined' || typeof crypto.subtle === 'undefined') {
-      console.warn('crypto.subtle not available, using sync fallback');
+    console.log('[AntiCheat] generateChecksum: Starting...');
+    
+    // Check if Web Crypto API is available
+    // In Electron with contextIsolation, we need to check both crypto and subtle
+    // Also verify it's the Web Crypto API and not Node's crypto module
+    if (typeof window === 'undefined' || 
+        typeof crypto === 'undefined' || 
+        typeof crypto.subtle === 'undefined' ||
+        typeof crypto.subtle.digest !== 'function') {
+      console.warn('[AntiCheat] Web Crypto API not available, using sync fallback');
       return generateChecksumSync(data);
     }
+
+    console.log('[AntiCheat] generateChecksum: Using Web Crypto API');
 
     // Filter out checksum field and sort keys (matches Python behavior)
     const filtered: Record<string, unknown> = {};
@@ -33,6 +42,8 @@ export async function generateChecksum(data: Record<string, unknown>): Promise<s
     const serialized = JSON.stringify(filtered, Object.keys(filtered).sort());
     const message = SAVE_SALT + serialized;
 
+    console.log('[AntiCheat] generateChecksum: Message prepared, computing hash...');
+    
     // Use Web Crypto API for SHA-256
     const encoder = new TextEncoder();
     const msgBuffer = encoder.encode(message);
@@ -40,9 +51,10 @@ export async function generateChecksum(data: Record<string, unknown>): Promise<s
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
+    console.log('[AntiCheat] generateChecksum: Hash computed successfully');
     return hashHex;
   } catch (error) {
-    console.warn('Error during async checksum generation, falling back to sync:', error);
+    console.warn('[AntiCheat] Error during async checksum generation, falling back to sync:', error);
     return generateChecksumSync(data);
   }
 }
@@ -271,6 +283,16 @@ export interface SecureSave {
 
 export async function createSecureSave(state: GameState): Promise<SecureSave> {
   try {
+    // Check if Web Crypto API is actually available and working
+    // In Electron with older Node versions, it might not be available
+    if (typeof window === 'undefined' || 
+        typeof crypto === 'undefined' || 
+        typeof crypto.subtle === 'undefined' ||
+        typeof crypto.subtle.digest !== 'function') {
+      console.warn('[AntiCheat] Web Crypto API not available, using sync fallback');
+      return createSecureSaveSync(state);
+    }
+
     const saveData: Omit<SecureSave, 'checksum'> = {
       version: '1.0.0',
       timestamp: Date.now(),
@@ -307,13 +329,15 @@ export async function createSecureSave(state: GameState): Promise<SecureSave> {
       usedCardsThisNight: state.usedCardsThisNight,
     };
 
+    console.log('[AntiCheat] Generating checksum...');
     const checksum = await generateChecksum(saveData as Record<string, unknown>);
+    console.log('[AntiCheat] Checksum generated:', checksum.substring(0, 8) + '...');
     return {
       ...saveData,
       checksum,
     };
   } catch (error) {
-    console.error('Error during async save creation, falling back to sync:', error);
+    console.error('[AntiCheat] Error during async save creation, falling back to sync:', error);
     return createSecureSaveSync(state);
   }
 }
@@ -371,14 +395,30 @@ export function createSecureSaveSync(state: GameState): SecureSave {
  */
 export async function verifySecureSave(save: SecureSave): Promise<{ valid: boolean; reason?: string }> {
   try {
+    console.log('[AntiCheat] verifySecureSave: Starting verification...');
+    
     // Verify checksum exists
     if (!save.checksum) {
+      console.log('[AntiCheat] verifySecureSave: No checksum found');
       return { valid: false, reason: 'Save file integrity check failed: no checksum' };
     }
 
+    // Check if Web Crypto API is available
+    if (typeof window === 'undefined' || 
+        typeof crypto === 'undefined' || 
+        typeof crypto.subtle === 'undefined' ||
+        typeof crypto.subtle.digest !== 'function') {
+      console.warn('[AntiCheat] Web Crypto API not available, using sync verification');
+      return verifySecureSaveSync(save);
+    }
+
     // Compute current checksum
+    console.log('[AntiCheat] verifySecureSave: Computing checksum...');
     const currentChecksum = await generateChecksum(save as unknown as Record<string, unknown>);
+    console.log('[AntiCheat] verifySecureSave: Checksum computed:', currentChecksum.substring(0, 8) + '...');
+    
     if (currentChecksum !== save.checksum) {
+      console.log('[AntiCheat] verifySecureSave: Checksum mismatch');
       return { valid: false, reason: 'Save file integrity check failed: checksum mismatch' };
     }
 
@@ -418,14 +458,17 @@ export async function verifySecureSave(save: SecureSave): Promise<{ valid: boole
     };
 
     // Validate game state
+    console.log('[AntiCheat] verifySecureSave: Validating game state...');
     const validation = validateGameState(gameState);
     if (!validation.valid) {
+      console.log('[AntiCheat] verifySecureSave: Invalid game state:', validation.errors);
       return { valid: false, reason: `Invalid game state: ${validation.errors.join('; ')}` };
     }
 
+    console.log('[AntiCheat] verifySecureSave: Verification successful');
     return { valid: true };
   } catch (error) {
-    console.error('Error during save verification:', error);
+    console.error('[AntiCheat] Error during save verification:', error);
     return { valid: false, reason: `Verification error: ${error instanceof Error ? error.message : 'Unknown error'}` };
   }
 }
