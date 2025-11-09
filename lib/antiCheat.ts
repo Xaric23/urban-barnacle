@@ -2,7 +2,7 @@
 // Validates game state integrity and prevents tampering
 // Ported and enhanced from Python game.py implementation
 
-import { GameState, Performer, Rumor, StageProp, RivalClub, SkillCard, VIPRoom, PatronRequest } from './types';
+import { GameState, Performer, Rumor, StageProp, RivalClub, SkillCard, VIPRoom, PatronRequest, BrothelRoom, BrothelWorker, BrothelSession } from './types';
 
 // Salt for checksum computation - changing this invalidates all saves
 // Matches Python implementation: _SAVE_SALT = "v1|NightclubGameSalt|DoNotModify"
@@ -283,9 +283,9 @@ export interface SecureSave {
   ownedFetishItems?: string[];
   activePatronRequests?: PatronRequest[];
   adultContentLevel?: number;
-  brothelRooms?: any[];
-  brothelWorkers?: any[];
-  brothelSessions?: any[];
+  brothelRooms?: BrothelRoom[];
+  brothelWorkers?: BrothelWorker[];
+  brothelSessions?: BrothelSession[];
   brothelReputation?: number;
   brothelEnabled?: boolean;
 }

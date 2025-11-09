@@ -10,7 +10,7 @@ import {
   fireBrothelWorker,
   toggleWorkerService
 } from '@/lib/gameLogic';
-import { BROTHEL_ROOMS, SEX_ACTIONS } from '@/lib/constants';
+import { BROTHEL_ROOMS } from '@/lib/constants';
 
 interface BrothelManagerProps {
   state: GameState;
@@ -64,11 +64,14 @@ export default function BrothelManager({ state, onUpdate, onBack }: BrothelManag
   const handleRunOperations = () => {
     const result = runBrothelOperations(state);
     
-    // Apply ethics change
-    state.ethicsScore = Math.max(0, Math.min(100, state.ethicsScore + result.ethicsChange));
+    // Apply ethics change to a new state object
+    const updatedState = {
+      ...state,
+      ethicsScore: Math.max(0, Math.min(100, state.ethicsScore + result.ethicsChange))
+    };
     
     setMessage(result.messages.join('\n'));
-    onUpdate({ ...state });
+    onUpdate(updatedState);
   };
 
   const handleTrainWorker = (workerId: string) => {
@@ -132,7 +135,7 @@ export default function BrothelManager({ state, onUpdate, onBack }: BrothelManag
           <div className="bg-yellow-900 border border-yellow-600 rounded p-4 mb-4">
             <p className="text-yellow-200 text-sm">
               ⚠️ <strong>Warning:</strong> Operating a brothel will impact your ethics score and 
-              may affect your club's reputation. Proceed with caution.
+              may affect your club&apos;s reputation. Proceed with caution.
             </p>
           </div>
           
