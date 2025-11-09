@@ -29,6 +29,8 @@ This command will:
 2. Package it with Electron
 3. Create a Windows installer in the `dist` folder
 
+**Note**: The build command uses `--publish never` to prevent automatic publishing to GitHub. This means you can build the executable locally without needing a GitHub Personal Access Token.
+
 The build process may take several minutes. Once complete, you'll find:
 - `dist/Underground Club Manager Setup 0.1.0.exe` - The installer executable
 
@@ -43,6 +45,24 @@ npm run dist
 ```bash
 npm run pack
 ```
+
+### Publishing to GitHub Releases
+
+If you want to publish the executable to GitHub Releases (for auto-update functionality), you'll need to:
+
+1. Set the `GH_TOKEN` environment variable with a GitHub Personal Access Token
+2. Run the publish command:
+
+```bash
+npm run publish
+```
+
+**Requirements for Publishing**:
+- GitHub Personal Access Token with `repo` scope
+- Set as environment variable: `GH_TOKEN=your_token_here`
+- Proper permissions on the repository
+
+**Note**: Regular users building the executable locally do NOT need to publish - the `build-exe` command is sufficient for local installation.
 
 ## Running the Game
 
