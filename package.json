@@ -16,7 +16,11 @@
     "build-exe": "next build && electron-builder --win --x64 --publish never",
     "pack": "electron-builder --dir --publish never",
     "dist": "electron-builder --publish never",
-    "publish": "next build && electron-builder --win --x64 --publish always"
+    "publish": "next build && electron-builder --win --x64 --publish always",
+    "android:sync": "npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:build": "npm run build && npx cap sync android",
+    "android:run": "npm run android:build && npx cap run android"
   },
   "build": {
     "appId": "com.xaric23.underground-club-manager",
@@ -48,6 +52,9 @@
     }
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
     "electron-updater": "6.7.0",
     "next": "16.0.1",
     "react": "19.2.0",

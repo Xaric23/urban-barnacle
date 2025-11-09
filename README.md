@@ -4,6 +4,8 @@ A text-based management game where you run an underground nightclub. Recruit and
 
 **Now built with Next.js, React, and TypeScript!**
 
+**Available on:** Web 🌐 | Windows 💻 | Android 📱
+
 ## 🎮 Features
 
 ### Core Gameplay
@@ -34,12 +36,15 @@ A text-based management game where you run an underground nightclub. Recruit and
 - **Styling**: Tailwind CSS
 - **State Management**: React Hooks
 - **Storage**: Browser localStorage
+- **Desktop**: Electron (Windows executable)
+- **Mobile**: Capacitor (Android native app)
 
 ## 💻 Installation
 
 ### Requirements
 - Node.js 18+
 - npm or yarn
+- **For Android builds**: Android Studio, Android SDK, JDK 17+
 
 ### Setup
 
@@ -75,6 +80,34 @@ npm run build-exe
 ```
 
 The installer will be created in the `dist` folder. See [BUILD_EXE.md](BUILD_EXE.md) for detailed instructions.
+
+### Build for Android 📱
+
+#### Automated Builds (Easiest!) 🤖
+Create a release with automatic APK builds:
+```bash
+npm version patch              # Update version
+git push && git push --tags    # Trigger automated build
+```
+GitHub Actions will automatically build and attach APKs to the release!
+
+See [AUTOMATED_ANDROID_BUILDS.md](AUTOMATED_ANDROID_BUILDS.md) for details.
+
+#### Manual Build
+To build locally:
+```bash
+# Build and sync to Android
+npm run android:build
+
+# Open in Android Studio to build APK
+npm run android:open
+```
+
+See [BUILD_ANDROID.md](BUILD_ANDROID.md) for complete Android build instructions including:
+- Prerequisites and setup
+- Building signed APKs for release
+- Publishing to Google Play Store
+- Testing on devices and emulators
 
 ## 🎯 How to Play
 
