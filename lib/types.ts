@@ -92,8 +92,8 @@ export interface Performer {
   chemistryWith: Record<string, number>; // New: performer_name -> chemistry_score (0-100)
   relationships: Record<string, "alliance" | "feud" | "romance" | "neutral">; // New: staff relationships
   cards: string[]; // New: NSFW skill cards
-  breastSize?: number; // 1-10, for female/intersex/transgender/non-binary
-  penisSize?: number; // 1-10, for male/intersex/transgender/non-binary
+  breastSize?: string; // Cup size (AA-H), for female/intersex/transgender/non-binary
+  penisSize?: string; // In inches (e.g., "7 inches"), for male/intersex/transgender/non-binary
 }
 
 export interface GameState {

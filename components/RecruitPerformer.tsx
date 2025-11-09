@@ -66,13 +66,13 @@ export default function RecruitPerformer({ state, onUpdate, onBack }: RecruitPer
             {candidate.breastSize !== undefined && (
               <div className="bg-gray-800 rounded p-3">
                 <div className="text-gray-400 text-sm">Breast Size</div>
-                <div className="text-xl font-bold">{candidate.breastSize}/10</div>
+                <div className="text-xl font-bold">{candidate.breastSize}</div>
               </div>
             )}
             {candidate.penisSize !== undefined && (
               <div className="bg-gray-800 rounded p-3">
                 <div className="text-gray-400 text-sm">Penis Size</div>
-                <div className="text-xl font-bold">{candidate.penisSize}/10</div>
+                <div className="text-xl font-bold">{candidate.penisSize}</div>
               </div>
             )}
           </div>
