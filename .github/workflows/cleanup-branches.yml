@@ -1,0 +1,92 @@
+name: Cleanup Merged Branches
+
+on:
+  # Run after pull requests are closed
+  pull_request:
+    types: [closed]
+  # Allow manual trigger
+  workflow_dispatch:
+  # Run weekly to catch any missed branches
+  schedule:
+    - cron: '0 0 * * 0' # Every Sunday at midnight
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for all branches
+          
+      - name: Delete merged branches
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Fetching all branches..."
+          git fetch --all --prune
+          
+          # Get the default branch (usually main)
+          DEFAULT_BRANCH=$(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
+          echo "Default branch: $DEFAULT_BRANCH"
+          
+          # List of branches to protect (never delete)
+          PROTECTED_BRANCHES=(
+            "$DEFAULT_BRANCH"
+            "main"
+            "master"
+            "develop"
+            "staging"
+            "production"
+          )
+          
+          # Get all remote branches
+          ALL_BRANCHES=$(git branch -r | grep -v HEAD | sed 's/origin\///' | tr -d ' ')
+          
+          echo "Checking branches for deletion..."
+          for branch in $ALL_BRANCHES; do
+            # Skip protected branches
+            skip=false
+            for protected in "${PROTECTED_BRANCHES[@]}"; do
+              if [[ "$branch" == "$protected" ]]; then
+                echo "Skipping protected branch: $branch"
+                skip=true
+                break
+              fi
+            done
+            
+            if [ "$skip" = true ]; then
+              continue
+            fi
+            
+            # Check if branch is merged into default branch
+            if git log "$DEFAULT_BRANCH..$branch" --oneline | grep -q .; then
+              echo "Branch $branch has unmerged commits, skipping..."
+            else
+              echo "Branch $branch is fully merged, checking if it can be deleted..."
+              
+              # Use GitHub API to delete the branch
+              response=$(curl -s -X DELETE \
+                -H "Authorization: token $GITHUB_TOKEN" \
+                -H "Accept: application/vnd.github.v3+json" \
+                "https://api.github.com/repos/${{ github.repository }}/git/refs/heads/$branch")
+              
+              if [[ $response == *"message"* ]]; then
+                echo "Note: Could not delete $branch - it may be protected or already deleted"
+              else
+                echo "✓ Deleted merged branch: $branch"
+              fi
+            fi
+          done
+          
+          echo "Branch cleanup completed!"
+
+      - name: Summary
+        run: |
+          echo "### Branch Cleanup Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Merged branches have been cleaned up automatically." >> $GITHUB_STEP_SUMMARY
+          echo "Protected branches (main, develop, etc.) are preserved." >> $GITHUB_STEP_SUMMARY
