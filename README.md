@@ -82,8 +82,19 @@ npm run build-exe
 The installer will be created in the `dist` folder. See [BUILD_EXE.md](BUILD_EXE.md) for detailed instructions.
 
 ### Build for Android 📱
-To create an Android app (APK/AAB):
 
+#### Automated Builds (Easiest!) 🤖
+Create a release with automatic APK builds:
+```bash
+npm version patch              # Update version
+git push && git push --tags    # Trigger automated build
+```
+GitHub Actions will automatically build and attach APKs to the release!
+
+See [AUTOMATED_ANDROID_BUILDS.md](AUTOMATED_ANDROID_BUILDS.md) for details.
+
+#### Manual Build
+To build locally:
 ```bash
 # Build and sync to Android
 npm run android:build
