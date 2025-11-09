@@ -2,6 +2,33 @@
 
 Use this checklist when preparing the first Android release or updating the Android version.
 
+## 🤖 Automated Build (Recommended)
+
+**GitHub Actions workflow is set up!** The easiest way to build and release APKs:
+
+### Using GitHub Releases
+1. Update version in `package.json` (e.g., "0.1.0" → "0.2.0")
+2. Commit and push changes
+3. Create a new tag: `git tag v0.2.0 && git push origin v0.2.0`
+4. GitHub Actions will automatically:
+   - Build the Next.js app
+   - Sync to Android
+   - Build debug and release APKs
+   - Create a GitHub Release with APKs attached
+
+### Manual Trigger
+You can also trigger the build manually:
+1. Go to **Actions** tab in GitHub
+2. Select "Build Android APK" workflow
+3. Click "Run workflow"
+4. Download APKs from the workflow artifacts
+
+---
+
+## 🔧 Manual Build (Alternative)
+
+If you prefer to build locally or need a signed release:
+
 ## Pre-Release Preparation
 
 ### 1. Version Management
