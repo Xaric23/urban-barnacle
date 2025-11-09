@@ -211,6 +211,16 @@ Use the pre-configured development container for a consistent development enviro
 
 See [ALLOWLIST.md](ALLOWLIST.md) for a complete list of required external services and domains for development.
 
+### Branch Management
+
+This repository uses automated branch cleanup to maintain a clean structure:
+
+- **Automated Cleanup**: Merged branches are automatically deleted after PR merge
+- **Protected Branches**: `main` and other important branches are never deleted
+- **Manual Analysis**: Run `./scripts/analyze-branches.sh` to see branch status
+
+See [BRANCH_MANAGEMENT.md](BRANCH_MANAGEMENT.md) for complete documentation.
+
 ### Extending the Game
 1. **New Performer Types**: Add to `PerformerType` enum
 2. **New Components**: Create in components/
