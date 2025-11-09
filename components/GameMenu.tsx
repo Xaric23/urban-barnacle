@@ -2,7 +2,7 @@ import { GameState } from '@/lib/types';
 
 interface GameMenuProps {
   state: GameState;
-  onNavigate: (view: 'recruit' | 'manage' | 'run' | 'stats' | 'upgrades' | 'drama' | 'stage' | 'expansions' | 'trends') => void;
+  onNavigate: (view: 'recruit' | 'manage' | 'run' | 'stats' | 'upgrades' | 'drama' | 'stage' | 'expansions' | 'trends' | 'brothel') => void;
   onAdvanceDay: () => void;
 }
 
@@ -75,6 +75,22 @@ export default function GameMenu({ state, onNavigate, onAdvanceDay }: GameMenuPr
       >
         <span>📊 Crowd Trends</span>
         <span className="text-sm opacity-75">{state.viralTrends.length} viral trend(s)</span>
+      </button>
+      
+      <button
+        onClick={() => onNavigate('brothel')}
+        className={`w-full font-bold py-4 px-6 rounded-lg transition flex items-center justify-between ${
+          state.brothelEnabled 
+            ? 'bg-rose-600 hover:bg-rose-700' 
+            : 'bg-rose-900 hover:bg-rose-800'
+        } text-white`}
+      >
+        <span>🏩 Brothel</span>
+        <span className="text-sm opacity-75">
+          {state.brothelEnabled 
+            ? `${state.brothelWorkers.length} worker(s)` 
+            : 'Locked'}
+        </span>
       </button>
       
       <button

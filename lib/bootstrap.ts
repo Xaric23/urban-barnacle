@@ -190,6 +190,11 @@ export async function bootstrapGame(
     ownedFetishItems: savedData.ownedFetishItems || [],
     activePatronRequests: savedData.activePatronRequests || [],
     adultContentLevel: savedData.adultContentLevel || 50,
+    brothelRooms: savedData.brothelRooms || [],
+    brothelWorkers: savedData.brothelWorkers || [],
+    brothelSessions: savedData.brothelSessions || [],
+    brothelReputation: savedData.brothelReputation || 50,
+    brothelEnabled: savedData.brothelEnabled || false,
   };
 
   // Check for time manipulation

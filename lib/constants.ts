@@ -1,4 +1,4 @@
-import { ClothingItem, ClothingSlot, PersonalityArchetype, ThemedNightType, ThemedNight, SkillCard, StageProp, SpecialEffect, RivalClub, VIPRoom, FetishItem, PatronRequest } from './types';
+import { ClothingItem, ClothingSlot, PersonalityArchetype, ThemedNightType, ThemedNight, SkillCard, StageProp, SpecialEffect, RivalClub, VIPRoom, FetishItem, PatronRequest, BrothelRoom, BrothelService, SexAction } from './types';
 
 // Game Constants - Traits and Names
 
@@ -542,4 +542,299 @@ export const PATRON_REQUESTS: PatronRequest[] = [
     }
   },
 ];
+
+// Brothel System Constants
+
+// Brothel Room Configurations
+export const BROTHEL_ROOMS: BrothelRoom[] = [
+  {
+    id: "brothel_basic",
+    name: "Private Room",
+    tier: 1,
+    cost: 8000,
+    dailyIncome: 300,
+    description: "Basic private room with essential amenities",
+    unlockRequirement: { reputation: 30, ethics: 40 },
+    capacity: 2
+  },
+  {
+    id: "brothel_deluxe",
+    name: "Luxury Suite",
+    tier: 2,
+    cost: 20000,
+    dailyIncome: 800,
+    description: "Upscale suite with premium furnishings and mood lighting",
+    unlockRequirement: { reputation: 50, ethics: 30 },
+    capacity: 3
+  },
+  {
+    id: "brothel_premium",
+    name: "Fantasy Chamber",
+    tier: 3,
+    cost: 50000,
+    dailyIncome: 2000,
+    description: "Lavish themed room with specialty equipment and complete privacy",
+    unlockRequirement: { reputation: 70, ethics: 20 },
+    capacity: 5
+  },
+];
+
+// Sex Actions (Tasteful/Implied Descriptions)
+export const SEX_ACTIONS: SexAction[] = [
+  // Massage Services
+  {
+    id: "action_body_massage",
+    name: "Full Body Massage",
+    service: BrothelService.MASSAGE,
+    description: "provides a relaxing full-body massage with oils",
+    baseIncome: 200,
+    energyCost: 2,
+    skillRequirement: 3,
+    ethicsImpact: -2,
+    reputationImpact: 1
+  },
+  {
+    id: "action_sensual_massage",
+    name: "Sensual Massage",
+    service: BrothelService.MASSAGE,
+    description: "gives an intimate, sensual massage experience",
+    baseIncome: 350,
+    energyCost: 3,
+    skillRequirement: 5,
+    ethicsImpact: -5,
+    reputationImpact: 2
+  },
+  
+  // Escort Services
+  {
+    id: "action_dinner_date",
+    name: "Dinner Companion",
+    service: BrothelService.ESCORT,
+    description: "accompanies client to dinner as elegant company",
+    baseIncome: 400,
+    energyCost: 2,
+    skillRequirement: 4,
+    ethicsImpact: -3,
+    reputationImpact: 3
+  },
+  {
+    id: "action_private_escort",
+    name: "Private Escort",
+    service: BrothelService.ESCORT,
+    description: "provides discreet companionship for the evening",
+    baseIncome: 600,
+    energyCost: 4,
+    skillRequirement: 6,
+    ethicsImpact: -8,
+    reputationImpact: 2
+  },
+  
+  // Full Service
+  {
+    id: "action_intimate_encounter",
+    name: "Intimate Encounter",
+    service: BrothelService.FULL_SERVICE,
+    description: "shares an intimate private encounter behind closed doors",
+    baseIncome: 800,
+    energyCost: 5,
+    skillRequirement: 6,
+    ethicsImpact: -12,
+    reputationImpact: 0
+  },
+  {
+    id: "action_passionate_session",
+    name: "Passionate Session",
+    service: BrothelService.FULL_SERVICE,
+    description: "provides passionate adult entertainment in private",
+    baseIncome: 1000,
+    energyCost: 6,
+    skillRequirement: 7,
+    ethicsImpact: -15,
+    reputationImpact: -1
+  },
+  
+  // Roleplay
+  {
+    id: "action_fantasy_roleplay",
+    name: "Fantasy Roleplay",
+    service: BrothelService.ROLEPLAY,
+    description: "performs an elaborate roleplay scenario",
+    baseIncome: 700,
+    energyCost: 4,
+    skillRequirement: 6,
+    ethicsImpact: -10,
+    reputationImpact: 2
+  },
+  {
+    id: "action_character_play",
+    name: "Character Play",
+    service: BrothelService.ROLEPLAY,
+    description: "embodies a fantasy character for immersive experience",
+    baseIncome: 900,
+    energyCost: 5,
+    skillRequirement: 7,
+    ethicsImpact: -12,
+    reputationImpact: 3
+  },
+  
+  // BDSM
+  {
+    id: "action_light_bdsm",
+    name: "Light BDSM",
+    service: BrothelService.BDSM,
+    description: "explores light bondage and dominance play",
+    baseIncome: 750,
+    energyCost: 4,
+    skillRequirement: 6,
+    ethicsImpact: -11,
+    reputationImpact: 1
+  },
+  {
+    id: "action_advanced_bdsm",
+    name: "Advanced BDSM",
+    service: BrothelService.BDSM,
+    description: "facilitates an intense power exchange session",
+    baseIncome: 1200,
+    energyCost: 6,
+    skillRequirement: 8,
+    ethicsImpact: -18,
+    reputationImpact: 0
+  },
+  
+  // Couples
+  {
+    id: "action_couples_therapy",
+    name: "Couples Session",
+    service: BrothelService.COUPLES,
+    description: "guides a couple through an intimate experience",
+    baseIncome: 1500,
+    energyCost: 6,
+    skillRequirement: 7,
+    ethicsImpact: -13,
+    reputationImpact: 2
+  },
+  {
+    id: "action_threesome",
+    name: "Group Experience",
+    service: BrothelService.COUPLES,
+    description: "participates in an intimate group encounter",
+    baseIncome: 2000,
+    energyCost: 8,
+    skillRequirement: 8,
+    ethicsImpact: -20,
+    reputationImpact: -2
+  },
+  
+  // Fantasy
+  {
+    id: "action_exotic_fantasy",
+    name: "Exotic Fantasy",
+    service: BrothelService.FANTASY,
+    description: "brings an exotic fantasy scenario to life",
+    baseIncome: 1100,
+    energyCost: 5,
+    skillRequirement: 7,
+    ethicsImpact: -14,
+    reputationImpact: 2
+  },
+  {
+    id: "action_taboo_fantasy",
+    name: "Taboo Fantasy",
+    service: BrothelService.FANTASY,
+    description: "performs a daring taboo fantasy roleplay",
+    baseIncome: 1600,
+    energyCost: 7,
+    skillRequirement: 8,
+    ethicsImpact: -22,
+    reputationImpact: -3
+  },
+  
+  // Overnight
+  {
+    id: "action_overnight_basic",
+    name: "Overnight Companion",
+    service: BrothelService.OVERNIGHT,
+    description: "stays as companion for the entire night",
+    baseIncome: 2500,
+    energyCost: 8,
+    skillRequirement: 6,
+    ethicsImpact: -15,
+    reputationImpact: 1
+  },
+  {
+    id: "action_overnight_premium",
+    name: "Premium Overnight",
+    service: BrothelService.OVERNIGHT,
+    description: "provides comprehensive overnight companionship",
+    baseIncome: 4000,
+    energyCost: 10,
+    skillRequirement: 8,
+    ethicsImpact: -25,
+    reputationImpact: -1
+  },
+];
+
+// Service compatibility with personality archetypes
+export const BROTHEL_SERVICE_COMPATIBILITY: Record<BrothelService, PersonalityArchetype[]> = {
+  [BrothelService.MASSAGE]: [
+    PersonalityArchetype.SHY,
+    PersonalityArchetype.VANILLA,
+    PersonalityArchetype.PLAYFUL,
+    PersonalityArchetype.FLIRTATIOUS
+  ],
+  [BrothelService.ESCORT]: [
+    PersonalityArchetype.FLIRTATIOUS,
+    PersonalityArchetype.PLAYFUL,
+    PersonalityArchetype.MYSTERIOUS,
+    PersonalityArchetype.VANILLA
+  ],
+  [BrothelService.FULL_SERVICE]: [
+    PersonalityArchetype.FLIRTATIOUS,
+    PersonalityArchetype.PLAYFUL,
+    PersonalityArchetype.KINKY,
+    PersonalityArchetype.DOMINANT
+  ],
+  [BrothelService.ROLEPLAY]: [
+    PersonalityArchetype.PLAYFUL,
+    PersonalityArchetype.MYSTERIOUS,
+    PersonalityArchetype.COMEDIC,
+    PersonalityArchetype.KINKY
+  ],
+  [BrothelService.BDSM]: [
+    PersonalityArchetype.DOMINANT,
+    PersonalityArchetype.KINKY,
+    PersonalityArchetype.MYSTERIOUS
+  ],
+  [BrothelService.COUPLES]: [
+    PersonalityArchetype.PLAYFUL,
+    PersonalityArchetype.FLIRTATIOUS,
+    PersonalityArchetype.KINKY
+  ],
+  [BrothelService.FANTASY]: [
+    PersonalityArchetype.MYSTERIOUS,
+    PersonalityArchetype.KINKY,
+    PersonalityArchetype.DOMINANT,
+    PersonalityArchetype.PLAYFUL
+  ],
+  [BrothelService.OVERNIGHT]: [
+    PersonalityArchetype.FLIRTATIOUS,
+    PersonalityArchetype.VANILLA,
+    PersonalityArchetype.PLAYFUL,
+    PersonalityArchetype.MYSTERIOUS
+  ],
+};
+
+// Brothel worker salary ranges by skill level
+export const BROTHEL_WORKER_SALARIES: Record<number, { min: number; max: number }> = {
+  1: { min: 100, max: 150 },
+  2: { min: 150, max: 250 },
+  3: { min: 250, max: 400 },
+  4: { min: 400, max: 600 },
+  5: { min: 600, max: 900 },
+  6: { min: 900, max: 1300 },
+  7: { min: 1300, max: 1800 },
+  8: { min: 1800, max: 2500 },
+  9: { min: 2500, max: 3500 },
+  10: { min: 3500, max: 5000 },
+};
 
