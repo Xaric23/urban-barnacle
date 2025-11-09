@@ -178,6 +178,18 @@ See [BOOTSTRAP_ANTICHEAT_DOCS.md](BOOTSTRAP_ANTICHEAT_DOCS.md) for complete docu
 
 ## 🔧 Development
 
+### Development Container (Recommended)
+
+Use the pre-configured development container for a consistent development environment:
+
+- **VS Code**: Open in container for automatic setup with all tools
+- **GitHub Codespaces**: One-click cloud development environment
+- See [.devcontainer/README.md](.devcontainer/README.md) for setup instructions
+
+### Network Requirements
+
+See [ALLOWLIST.md](ALLOWLIST.md) for a complete list of required external services and domains for development.
+
 ### Extending the Game
 1. **New Performer Types**: Add to `PerformerType` enum
 2. **New Components**: Create in components/
