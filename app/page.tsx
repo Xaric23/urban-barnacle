@@ -35,27 +35,33 @@ export default function Home() {
   useEffect(() => {
     // Bootstrap the game on mount
     const initGame = async () => {
-      const result = await bootstrapGame(setBootstrapState);
-      
-      if (result.success) {
-        setGameState(result.gameState);
-        setShowWelcome(result.isNewGame);
+      try {
+        const result = await bootstrapGame(setBootstrapState);
         
-        // Show warnings if any
-        if (result.warnings.length > 0) {
-          setTimeout(() => {
-            alert('⚠️ Warnings:\n' + result.warnings.join('\n'));
-          }, 500);
+        if (result.success) {
+          setGameState(result.gameState);
+          setShowWelcome(result.isNewGame);
+          
+          // Show warnings if any
+          if (result.warnings.length > 0) {
+            setTimeout(() => {
+              alert('⚠️ Warnings:\n' + result.warnings.join('\n'));
+            }, 500);
+          }
+        } else {
+          alert('Failed to load game: ' + result.error);
+          setGameState(createInitialGameState());
         }
-      } else {
-        alert('Failed to load game: ' + result.error);
+      } catch (error) {
+        console.error('Bootstrap error:', error);
+        alert('Error loading game: ' + (error instanceof Error ? error.message : 'Unknown error'));
         setGameState(createInitialGameState());
+      } finally {
+        // Always hide loading screen, even if there's an error
+        setTimeout(() => {
+          setIsBootstrapping(false);
+        }, 800);
       }
-      
-      // Keep loading screen visible for a moment
-      setTimeout(() => {
-        setIsBootstrapping(false);
-      }, 800);
     };
 
     initGame();

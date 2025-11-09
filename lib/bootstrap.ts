@@ -43,15 +43,16 @@ export async function bootstrapGame(
   console.log('[Bootstrap] Starting bootstrap process...');
   const warnings: string[] = [];
   
-  // Step 1: Initialize
-  updateProgress(onProgress, {
-    status: BootstrapStatus.INITIALIZING,
-    progress: 0,
-    message: 'Initializing game systems...',
-    warnings: [],
-  });
-  console.log('[Bootstrap] Step 1: Initializing...');
-  await delay(300);
+  try {
+    // Step 1: Initialize
+    updateProgress(onProgress, {
+      status: BootstrapStatus.INITIALIZING,
+      progress: 0,
+      message: 'Initializing game systems...',
+      warnings: [],
+    });
+    console.log('[Bootstrap] Step 1: Initializing...');
+    await delay(300);
 
   // Step 2: Check for existing save
   console.log('[Bootstrap] Step 2: Checking for saved game...');
@@ -228,6 +229,27 @@ export async function bootstrapGame(
     isNewGame: false,
     warnings,
   };
+  } catch (error) {
+    console.error('[Bootstrap] Fatal error during bootstrap:', error);
+    
+    updateProgress(onProgress, {
+      status: BootstrapStatus.ERROR,
+      progress: 0,
+      message: 'Bootstrap failed',
+      warnings: [],
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+
+    // Return a new game on error
+    const newGame = createInitialGameState();
+    return {
+      success: false,
+      gameState: newGame,
+      isNewGame: true,
+      warnings: [],
+      error: error instanceof Error ? error.message : 'Bootstrap failed with unknown error',
+    };
+  }
 }
 
 /**
