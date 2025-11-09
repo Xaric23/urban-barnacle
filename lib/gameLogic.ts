@@ -1,7 +1,7 @@
 // Game Logic and State Management for Underground Club Manager
 
 import { GameState, Performer, PerformerType, Gender, Upgrade, ClothingSlot, Wardrobe, PersonalityArchetype, ThemedNightType, Rumor } from './types';
-import { PERSONALITY_TRAITS, generateFullName, CLOTHING_CATALOG, SKILL_CARDS, CROWD_KINKS, PERSONALITY_ARCHETYPES, CHEMISTRY_COMPATIBILITY, THEMED_NIGHTS } from './constants';
+import { PERSONALITY_TRAITS, generateFullName, CLOTHING_CATALOG, SKILL_CARDS, CROWD_KINKS, PERSONALITY_ARCHETYPES, CHEMISTRY_COMPATIBILITY, THEMED_NIGHTS, EXPLICIT_PERFORMANCE_DESCRIPTIONS } from './constants';
 
 export function createInitialGameState(): GameState {
   return {
@@ -48,6 +48,12 @@ export function createInitialGameState(): GameState {
     managedTroupes: [],
     availableCards: SKILL_CARDS.slice(0, 6), // Start with 6 basic cards
     usedCardsThisNight: [],
+    
+    // New adult features
+    vipRooms: [],
+    ownedFetishItems: [],
+    activePatronRequests: [],
+    adultContentLevel: 50, // Start at moderate level
   };
 }
 
@@ -125,6 +131,20 @@ export function loadGameState(): GameState | null {
         state.usedCardsThisNight = [];
       }
       
+      // Add new adult feature fields
+      if (!state.vipRooms) {
+        state.vipRooms = [];
+      }
+      if (!state.ownedFetishItems) {
+        state.ownedFetishItems = [];
+      }
+      if (!state.activePatronRequests) {
+        state.activePatronRequests = [];
+      }
+      if (state.adultContentLevel === undefined) {
+        state.adultContentLevel = 50;
+      }
+      
       // Ensure all performers have new fields
       state.performers = state.performers.map(p => {
         if (!p.wardrobe) {
@@ -150,6 +170,26 @@ export function loadGameState(): GameState | null {
         if (!p.cards) {
           p.cards = [];
         }
+        
+        // Add new adult service fields
+        if (p.comfortLevel === undefined) {
+          // Generate comfort level based on personality
+          let baseComfort = 50;
+          if (p.personalityArchetype === PersonalityArchetype.KINKY) baseComfort = 80;
+          if (p.personalityArchetype === PersonalityArchetype.SHY) baseComfort = 30;
+          if (p.personalityArchetype === PersonalityArchetype.FLIRTATIOUS) baseComfort = 70;
+          p.comfortLevel = baseComfort + Math.floor(Math.random() * 20) - 10; // +/- 10
+        }
+        if (p.offersLapDances === undefined) {
+          p.offersLapDances = false;
+        }
+        if (p.offersPoleShows === undefined) {
+          p.offersPoleShows = false;
+        }
+        if (p.willDoFetishShows === undefined) {
+          p.willDoFetishShows = false;
+        }
+        
         // Add breast and penis sizes for existing performers if missing
         // Also convert old numeric format to new string format
         if (p.breastSize === undefined) {
@@ -312,6 +352,16 @@ export function generatePerformer(type: PerformerType): Performer {
       }
       break;
   }
+  
+  // Generate comfort level based on personality archetype
+  let comfortLevel = 50; // Base comfort
+  if (personalityArchetype === PersonalityArchetype.KINKY) comfortLevel = 80;
+  if (personalityArchetype === PersonalityArchetype.SHY) comfortLevel = 30;
+  if (personalityArchetype === PersonalityArchetype.FLIRTATIOUS) comfortLevel = 70;
+  if (personalityArchetype === PersonalityArchetype.DOMINANT) comfortLevel = 75;
+  if (personalityArchetype === PersonalityArchetype.VANILLA) comfortLevel = 40;
+  comfortLevel += Math.floor(Math.random() * 20) - 10; // +/- 10
+  comfortLevel = Math.max(10, Math.min(100, comfortLevel));
 
   return {
     name: generateFullName(),
@@ -328,6 +378,10 @@ export function generatePerformer(type: PerformerType): Performer {
     dancerStripRoutine: false,
     offersPrivateLounge: false,
     afterHoursExclusive: false,
+    comfortLevel,
+    offersLapDances: false,
+    offersPoleShows: false,
+    willDoFetishShows: false,
     wardrobe: {
       [ClothingSlot.TOP]: null,
       [ClothingSlot.BOTTOM]: null,
@@ -515,35 +569,77 @@ export function calculateTips(performer: Performer, baseIncome: number, ownedClo
   return { tips, message: `Earned $${tips} in tips!` };
 }
 
-// Calculate income from adult services
+// Calculate income from adult services with explicit descriptions
 export function calculateAdultServiceIncome(performer: Performer, baseIncome: number): { bonus: number; messages: string[] } {
   let totalBonus = 0;
   const messages: string[] = [];
   
+  // Helper function to get random description
+  const getRandomDescription = (category: string): string => {
+    const descriptions = EXPLICIT_PERFORMANCE_DESCRIPTIONS[category as keyof typeof EXPLICIT_PERFORMANCE_DESCRIPTIONS];
+    return descriptions[Math.floor(Math.random() * descriptions.length)];
+  };
+  
+  // Striptease
   if (performer.offersStriptease && performer.energy >= 3) {
     const stripBonus = Math.max(120, Math.floor(baseIncome * 0.25));
     totalBonus += stripBonus;
-    messages.push(`Striptease routine: +$${stripBonus}`);
+    const description = getRandomDescription('striptease');
+    messages.push(`💃 ${performer.name} ${description} (+$${stripBonus})`);
   } else if (performer.offersStriptease) {
-    messages.push("Too exhausted for striptease routine");
+    messages.push(`${performer.name} is too exhausted for striptease`);
   }
   
+  // Lap Dances
+  if (performer.offersLapDances && performer.energy >= 2) {
+    const lapBonus = Math.max(80, Math.floor(baseIncome * 0.20));
+    totalBonus += lapBonus;
+    const description = getRandomDescription('lapDance');
+    messages.push(`💋 ${performer.name} ${description} (+$${lapBonus})`);
+  } else if (performer.offersLapDances) {
+    messages.push(`${performer.name} too tired for lap dances`);
+  }
+  
+  // Pole Shows
+  if (performer.offersPoleShows && performer.energy >= 3) {
+    const poleBonus = Math.max(150, Math.floor(baseIncome * 0.30));
+    totalBonus += poleBonus;
+    const description = getRandomDescription('poleShow');
+    messages.push(`💎 ${performer.name} ${description} (+$${poleBonus})`);
+  } else if (performer.offersPoleShows) {
+    messages.push(`${performer.name} too drained for pole work`);
+  }
+  
+  // Private Lounge
   if (performer.offersPrivateLounge && performer.energy >= 4) {
     const loungeBase = baseIncome + totalBonus;
     const loungeBonus = Math.max(160, Math.floor(loungeBase * 0.35));
     totalBonus += loungeBonus;
-    messages.push(`Private lounge experience: +$${loungeBonus}`);
+    const description = getRandomDescription('privateLounge');
+    messages.push(`🛋️ ${performer.name} ${description} (+$${loungeBonus})`);
   } else if (performer.offersPrivateLounge) {
-    messages.push("Too drained for private lounge");
+    messages.push(`${performer.name} too drained for private lounge`);
   }
   
+  // Fetish Shows
+  if (performer.willDoFetishShows && performer.energy >= 4) {
+    const fetishBonus = Math.max(200, Math.floor((baseIncome + totalBonus) * 0.40));
+    totalBonus += fetishBonus;
+    const description = getRandomDescription('fetishShow');
+    messages.push(`🔗 ${performer.name} ${description} (+$${fetishBonus})`);
+  } else if (performer.willDoFetishShows) {
+    messages.push(`${performer.name} no energy for fetish content`);
+  }
+  
+  // After-hours Exclusive
   if (performer.afterHoursExclusive && performer.energy >= 5) {
     const exclusiveBase = baseIncome + totalBonus;
     const exclusiveBonus = Math.max(240, Math.floor(exclusiveBase * 0.45));
     totalBonus += exclusiveBonus;
-    messages.push(`After-hours exclusive: +$${exclusiveBonus}`);
+    const description = getRandomDescription('afterHours');
+    messages.push(`🌙 ${performer.name} ${description} (+$${exclusiveBonus})`);
   } else if (performer.afterHoursExclusive) {
-    messages.push("No stamina for after-hours exclusive");
+    messages.push(`${performer.name} no stamina for after-hours`);
   }
   
   return { bonus: totalBonus, messages };

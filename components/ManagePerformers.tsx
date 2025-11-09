@@ -58,30 +58,68 @@ export default function ManagePerformers({ state, onUpdate, onBack }: ManagePerf
     newState.relationships[performer.name] = Math.min(10, currentRelationship + 1);
     const updatedPerformer = { ...performer };
     updatedPerformer.loyalty = Math.min(10, updatedPerformer.loyalty + 1);
+    // Increase comfort level when building relationship
+    updatedPerformer.comfortLevel = Math.min(100, updatedPerformer.comfortLevel + 2);
     newState.performers[index] = updatedPerformer;
     onUpdate(newState);
-    alert(`You spent time with ${performer.name}. Relationship improved to ${newState.relationships[performer.name]}/10`);
+    alert(`You spent time with ${performer.name}. Relationship: ${newState.relationships[performer.name]}/10, Comfort: ${updatedPerformer.comfortLevel}/100`);
   };
 
-  const toggleAdultService = (index: number, service: 'striptease' | 'privateLounge' | 'afterHours') => {
+  const toggleAdultService = (index: number, service: 'striptease' | 'privateLounge' | 'afterHours' | 'lapDance' | 'poleShow' | 'fetishShow') => {
     const performer = state.performers[index];
     const newState = { ...state };
     const updatedPerformer = { ...performer };
     
+    // Check comfort level before enabling services
+    const checkComfort = (requiredComfort: number, serviceName: string): boolean => {
+      if (performer.comfortLevel < requiredComfort) {
+        alert(`${performer.name}'s comfort level (${performer.comfortLevel}/100) is too low for ${serviceName}. Build trust and relationship first.`);
+        return false;
+      }
+      return true;
+    };
+    
     if (service === 'striptease') {
+      if (!updatedPerformer.offersStriptease && !checkComfort(40, 'striptease')) return;
       updatedPerformer.offersStriptease = !updatedPerformer.offersStriptease;
       if (updatedPerformer.offersStriptease) {
         newState.ethicsScore = Math.max(0, newState.ethicsScore - 3);
+        newState.adultContentLevel = Math.min(100, newState.adultContentLevel + 2);
+      }
+    } else if (service === 'lapDance') {
+      if (!updatedPerformer.offersLapDances && !checkComfort(45, 'lap dances')) return;
+      updatedPerformer.offersLapDances = !updatedPerformer.offersLapDances;
+      if (updatedPerformer.offersLapDances) {
+        newState.ethicsScore = Math.max(0, newState.ethicsScore - 4);
+        newState.adultContentLevel = Math.min(100, newState.adultContentLevel + 3);
+      }
+    } else if (service === 'poleShow') {
+      if (!updatedPerformer.offersPoleShows && !checkComfort(50, 'pole shows')) return;
+      updatedPerformer.offersPoleShows = !updatedPerformer.offersPoleShows;
+      if (updatedPerformer.offersPoleShows) {
+        newState.ethicsScore = Math.max(0, newState.ethicsScore - 4);
+        newState.adultContentLevel = Math.min(100, newState.adultContentLevel + 4);
       }
     } else if (service === 'privateLounge') {
+      if (!updatedPerformer.offersPrivateLounge && !checkComfort(55, 'private lounge')) return;
       updatedPerformer.offersPrivateLounge = !updatedPerformer.offersPrivateLounge;
       if (updatedPerformer.offersPrivateLounge) {
         newState.ethicsScore = Math.max(0, newState.ethicsScore - 5);
+        newState.adultContentLevel = Math.min(100, newState.adultContentLevel + 5);
+      }
+    } else if (service === 'fetishShow') {
+      if (!updatedPerformer.willDoFetishShows && !checkComfort(60, 'fetish shows')) return;
+      updatedPerformer.willDoFetishShows = !updatedPerformer.willDoFetishShows;
+      if (updatedPerformer.willDoFetishShows) {
+        newState.ethicsScore = Math.max(0, newState.ethicsScore - 7);
+        newState.adultContentLevel = Math.min(100, newState.adultContentLevel + 6);
       }
     } else if (service === 'afterHours') {
+      if (!updatedPerformer.afterHoursExclusive && !checkComfort(70, 'after-hours exclusives')) return;
       updatedPerformer.afterHoursExclusive = !updatedPerformer.afterHoursExclusive;
       if (updatedPerformer.afterHoursExclusive) {
         newState.ethicsScore = Math.max(0, newState.ethicsScore - 8);
+        newState.adultContentLevel = Math.min(100, newState.adultContentLevel + 8);
       }
     }
     
@@ -190,6 +228,10 @@ export default function ManagePerformers({ state, onUpdate, onBack }: ManagePerf
                 <div className="text-lg font-bold">{performer.penisSize}</div>
               </div>
             )}
+            <div className="bg-gray-800 rounded p-3">
+              <div className="text-gray-400 text-xs">Comfort Level</div>
+              <div className="text-lg font-bold">{performer.comfortLevel}/100</div>
+            </div>
           </div>
           
           <div>
@@ -213,7 +255,8 @@ export default function ManagePerformers({ state, onUpdate, onBack }: ManagePerf
         </div>
         
         <div className="bg-gray-700 rounded-lg p-4">
-          <h3 className="font-bold mb-3">Adult Services (⚠️ Affects Ethics)</h3>
+          <h3 className="font-bold mb-3">🔞 Adult Services (Affects Ethics & Comfort)</h3>
+          <p className="text-sm text-gray-400 mb-3">Higher relationship and comfort unlock more options</p>
           <div className="space-y-2">
             <button
               onClick={() => toggleAdultService(selectedIndex, 'striptease')}
@@ -224,8 +267,36 @@ export default function ManagePerformers({ state, onUpdate, onBack }: ManagePerf
               }`}
             >
               <div className="flex justify-between items-center">
-                <span>💃 Striptease Routines (+25% income, -3 energy)</span>
+                <span>💃 Striptease Routines (+25%, -3 energy) [Comfort: 40+]</span>
                 <span className="font-bold">{performer.offersStriptease ? 'ON' : 'OFF'}</span>
+              </div>
+            </button>
+            
+            <button
+              onClick={() => toggleAdultService(selectedIndex, 'lapDance')}
+              className={`w-full text-left p-3 rounded transition ${
+                performer.offersLapDances 
+                  ? 'bg-pink-600 hover:bg-pink-700' 
+                  : 'bg-gray-800 hover:bg-gray-600'
+              }`}
+            >
+              <div className="flex justify-between items-center">
+                <span>💋 Lap Dances (+20%, -2 energy) [Comfort: 45+]</span>
+                <span className="font-bold">{performer.offersLapDances ? 'ON' : 'OFF'}</span>
+              </div>
+            </button>
+            
+            <button
+              onClick={() => toggleAdultService(selectedIndex, 'poleShow')}
+              className={`w-full text-left p-3 rounded transition ${
+                performer.offersPoleShows 
+                  ? 'bg-pink-600 hover:bg-pink-700' 
+                  : 'bg-gray-800 hover:bg-gray-600'
+              }`}
+            >
+              <div className="flex justify-between items-center">
+                <span>💎 Pole Shows (+30%, -3 energy) [Comfort: 50+]</span>
+                <span className="font-bold">{performer.offersPoleShows ? 'ON' : 'OFF'}</span>
               </div>
             </button>
             
@@ -238,8 +309,22 @@ export default function ManagePerformers({ state, onUpdate, onBack }: ManagePerf
               }`}
             >
               <div className="flex justify-between items-center">
-                <span>🛋️ Private Lounge (+35% income, -4 energy)</span>
+                <span>🛋️ Private Lounge (+35%, -4 energy) [Comfort: 55+]</span>
                 <span className="font-bold">{performer.offersPrivateLounge ? 'ON' : 'OFF'}</span>
+              </div>
+            </button>
+            
+            <button
+              onClick={() => toggleAdultService(selectedIndex, 'fetishShow')}
+              className={`w-full text-left p-3 rounded transition ${
+                performer.willDoFetishShows 
+                  ? 'bg-pink-600 hover:bg-pink-700' 
+                  : 'bg-gray-800 hover:bg-gray-600'
+              }`}
+            >
+              <div className="flex justify-between items-center">
+                <span>🔗 Fetish Shows (+40%, -4 energy) [Comfort: 60+]</span>
+                <span className="font-bold">{performer.willDoFetishShows ? 'ON' : 'OFF'}</span>
               </div>
             </button>
             
@@ -252,7 +337,7 @@ export default function ManagePerformers({ state, onUpdate, onBack }: ManagePerf
               }`}
             >
               <div className="flex justify-between items-center">
-                <span>🌙 After-Hours Exclusive (+45% income, -5 energy)</span>
+                <span>🌙 After-Hours Exclusive (+45%, -5 energy) [Comfort: 70+]</span>
                 <span className="font-bold">{performer.afterHoursExclusive ? 'ON' : 'OFF'}</span>
               </div>
             </button>
