@@ -186,6 +186,10 @@ export async function bootstrapGame(
     managedTroupes: savedData.managedTroupes || [],
     availableCards: savedData.availableCards || [],
     usedCardsThisNight: savedData.usedCardsThisNight || [],
+    vipRooms: savedData.vipRooms || [],
+    ownedFetishItems: savedData.ownedFetishItems || [],
+    activePatronRequests: savedData.activePatronRequests || [],
+    adultContentLevel: savedData.adultContentLevel || 50,
   };
 
   // Check for time manipulation

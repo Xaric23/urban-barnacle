@@ -2,7 +2,7 @@
 // Validates game state integrity and prevents tampering
 // Ported and enhanced from Python game.py implementation
 
-import { GameState, Performer, Rumor, StageProp, RivalClub, SkillCard } from './types';
+import { GameState, Performer, Rumor, StageProp, RivalClub, SkillCard, VIPRoom, PatronRequest } from './types';
 
 // Salt for checksum computation - changing this invalidates all saves
 // Matches Python implementation: _SAVE_SALT = "v1|NightclubGameSalt|DoNotModify"
@@ -279,6 +279,10 @@ export interface SecureSave {
   managedTroupes?: string[];
   availableCards?: SkillCard[];
   usedCardsThisNight?: string[];
+  vipRooms?: VIPRoom[];
+  ownedFetishItems?: string[];
+  activePatronRequests?: PatronRequest[];
+  adultContentLevel?: number;
 }
 
 export async function createSecureSave(state: GameState): Promise<SecureSave> {
@@ -455,6 +459,10 @@ export async function verifySecureSave(save: SecureSave): Promise<{ valid: boole
       managedTroupes: save.managedTroupes || [],
       availableCards: save.availableCards || [],
       usedCardsThisNight: save.usedCardsThisNight || [],
+      vipRooms: save.vipRooms || [],
+      ownedFetishItems: save.ownedFetishItems || [],
+      activePatronRequests: save.activePatronRequests || [],
+      adultContentLevel: save.adultContentLevel || 50,
     };
 
     // Validate game state
@@ -521,6 +529,10 @@ export function verifySecureSaveSync(save: SecureSave): { valid: boolean; reason
     managedTroupes: save.managedTroupes || [],
     availableCards: save.availableCards || [],
     usedCardsThisNight: save.usedCardsThisNight || [],
+    vipRooms: save.vipRooms || [],
+    ownedFetishItems: save.ownedFetishItems || [],
+    activePatronRequests: save.activePatronRequests || [],
+    adultContentLevel: save.adultContentLevel || 50,
   };
 
   // Validate game state

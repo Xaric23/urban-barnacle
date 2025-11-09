@@ -94,6 +94,10 @@ export interface Performer {
   cards: string[]; // New: NSFW skill cards
   breastSize?: string; // Cup size (AA-H), for female/intersex/transgender/non-binary
   penisSize?: string; // In inches (e.g., "7 inches"), for male/intersex/transgender/non-binary
+  comfortLevel: number; // 0-100: How comfortable they are with adult content
+  offersLapDances: boolean; // New adult service
+  offersPoleShows: boolean; // New adult service
+  willDoFetishShows: boolean; // New adult service
 }
 
 export interface GameState {
@@ -140,6 +144,12 @@ export interface GameState {
   // New: Card System
   availableCards: SkillCard[];
   usedCardsThisNight: string[];
+  
+  // New: VIP Room & Adult Features
+  vipRooms: VIPRoom[];
+  ownedFetishItems: string[]; // IDs of fetish items
+  activePatronRequests: PatronRequest[];
+  adultContentLevel: number; // 0-100: How explicit the club is
 }
 
 export interface EventContext {
@@ -259,5 +269,47 @@ export interface TabooNightEvent {
   riskLevel: number; // 1-10
   potentialReward: number;
   ethicsImpact: number;
-  audienceVotingOptions: string[];
+}
+
+// VIP Room System
+export interface VIPRoom {
+  id: string;
+  name: string;
+  tier: number; // 1-3 (Basic, Deluxe, Premium)
+  cost: number;
+  dailyIncome: number;
+  description: string;
+  unlockRequirement: {
+    reputation: number;
+    fame: number;
+  };
+}
+
+// Fetish Shop Items
+export interface FetishItem {
+  id: string;
+  name: string;
+  category: "toy" | "furniture" | "costume" | "restraint" | "prop";
+  appeal: number;
+  cost: number;
+  description: string;
+  unlockRequirement?: {
+    ethics?: number; // Lower ethics unlocks more extreme items
+    reputation?: number;
+  };
+}
+
+// Patron Request System
+export interface PatronRequest {
+  id: string;
+  patronName: string;
+  requestType: "private_show" | "specific_performer" | "themed_performance" | "custom_act";
+  payment: number;
+  ethicsImpact: number;
+  description: string;
+  requirements: {
+    performerArchetype?: PersonalityArchetype;
+    minSkill?: number;
+    specificService?: string;
+  };
 }

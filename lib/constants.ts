@@ -1,4 +1,4 @@
-import { ClothingItem, ClothingSlot, PersonalityArchetype, ThemedNightType, ThemedNight, SkillCard, StageProp, SpecialEffect, RivalClub } from './types';
+import { ClothingItem, ClothingSlot, PersonalityArchetype, ThemedNightType, ThemedNight, SkillCard, StageProp, SpecialEffect, RivalClub, VIPRoom, FetishItem, PatronRequest } from './types';
 
 // Game Constants - Traits and Names
 
@@ -254,5 +254,292 @@ export const VIRAL_TRENDS = [
   { name: "Gothic Revival", kink: "gothic", duration: 10, bonus: 20 },
   { name: "Comedy Boom", kink: "comedy", duration: 6, bonus: 22 },
   { name: "Mystery Madness", kink: "mystery", duration: 8, bonus: 18 },
+];
+
+// VIP Room Tiers
+export const VIP_ROOMS: VIPRoom[] = [
+  {
+    id: "vip_basic",
+    name: "Private Booth",
+    tier: 1,
+    cost: 5000,
+    dailyIncome: 200,
+    description: "Intimate booth for one-on-one performances",
+    unlockRequirement: { reputation: 40, fame: 20 }
+  },
+  {
+    id: "vip_deluxe",
+    name: "Champagne Lounge",
+    tier: 2,
+    cost: 15000,
+    dailyIncome: 500,
+    description: "Luxurious lounge with private bar and stage",
+    unlockRequirement: { reputation: 60, fame: 40 }
+  },
+  {
+    id: "vip_premium",
+    name: "The Velvet Suite",
+    tier: 3,
+    cost: 40000,
+    dailyIncome: 1200,
+    description: "Ultra-exclusive suite with custom performances and amenities",
+    unlockRequirement: { reputation: 80, fame: 60 }
+  },
+];
+
+// Fetish Shop Items
+export const FETISH_ITEMS: FetishItem[] = [
+  // Toys
+  { 
+    id: "toy_feather", 
+    name: "Feather Teaser", 
+    category: "toy", 
+    appeal: 5, 
+    cost: 150, 
+    description: "Soft feathers for sensual teasing"
+  },
+  { 
+    id: "toy_paddle", 
+    name: "Velvet Paddle", 
+    category: "toy", 
+    appeal: 8, 
+    cost: 350, 
+    description: "For playful spanking performances",
+    unlockRequirement: { ethics: 40 }
+  },
+  { 
+    id: "toy_whip", 
+    name: "Leather Flogger", 
+    category: "toy", 
+    appeal: 12, 
+    cost: 650, 
+    description: "BDSM prop for dominance shows",
+    unlockRequirement: { ethics: 30 }
+  },
+  { 
+    id: "toy_vibrator", 
+    name: "Performance Vibrator", 
+    category: "toy", 
+    appeal: 15, 
+    cost: 800, 
+    description: "Interactive toy for explicit performances",
+    unlockRequirement: { ethics: 25, reputation: 50 }
+  },
+  
+  // Furniture
+  { 
+    id: "furn_bench", 
+    name: "Spanking Bench", 
+    category: "furniture", 
+    appeal: 10, 
+    cost: 1200, 
+    description: "BDSM furniture for submission shows",
+    unlockRequirement: { ethics: 35 }
+  },
+  { 
+    id: "furn_cross", 
+    name: "St. Andrew's Cross", 
+    category: "furniture", 
+    appeal: 14, 
+    cost: 2500, 
+    description: "Classic restraint apparatus",
+    unlockRequirement: { ethics: 25 }
+  },
+  { 
+    id: "furn_bed", 
+    name: "Performance Bed", 
+    category: "furniture", 
+    appeal: 18, 
+    cost: 3500, 
+    description: "Luxury bed for intimate shows",
+    unlockRequirement: { ethics: 20, reputation: 60 }
+  },
+  
+  // Costumes
+  { 
+    id: "costume_latex", 
+    name: "Latex Bodysuit", 
+    category: "costume", 
+    appeal: 10, 
+    cost: 500, 
+    description: "Shiny, form-fitting outfit"
+  },
+  { 
+    id: "costume_leather", 
+    name: "Leather Harness", 
+    category: "costume", 
+    appeal: 12, 
+    cost: 700, 
+    description: "Strappy leather outfit for fetish shows",
+    unlockRequirement: { ethics: 35 }
+  },
+  { 
+    id: "costume_nurse", 
+    name: "Naughty Nurse Outfit", 
+    category: "costume", 
+    appeal: 8, 
+    cost: 400, 
+    description: "Roleplay costume for fantasy scenarios"
+  },
+  { 
+    id: "costume_officer", 
+    name: "Officer Outfit", 
+    category: "costume", 
+    appeal: 9, 
+    cost: 450, 
+    description: "Authority roleplay costume"
+  },
+  
+  // Restraints
+  { 
+    id: "restraint_cuffs", 
+    name: "Velvet Cuffs", 
+    category: "restraint", 
+    appeal: 7, 
+    cost: 250, 
+    description: "Comfortable cuffs for light bondage",
+    unlockRequirement: { ethics: 40 }
+  },
+  { 
+    id: "restraint_rope", 
+    name: "Silk Rope Kit", 
+    category: "restraint", 
+    appeal: 10, 
+    cost: 450, 
+    description: "For artistic rope bondage displays",
+    unlockRequirement: { ethics: 35 }
+  },
+  { 
+    id: "restraint_collar", 
+    name: "Leather Collar", 
+    category: "restraint", 
+    appeal: 8, 
+    cost: 300, 
+    description: "Collar with leash for pet play",
+    unlockRequirement: { ethics: 35 }
+  },
+  
+  // Props
+  { 
+    id: "prop_mask", 
+    name: "Masquerade Masks", 
+    category: "prop", 
+    appeal: 5, 
+    cost: 200, 
+    description: "Mysterious masks for anonymous shows"
+  },
+  { 
+    id: "prop_oil", 
+    name: "Massage Oil", 
+    category: "prop", 
+    appeal: 6, 
+    cost: 150, 
+    description: "Scented oil for sensual performances"
+  },
+  { 
+    id: "prop_candles", 
+    name: "Wax Play Candles", 
+    category: "prop", 
+    appeal: 11, 
+    cost: 400, 
+    description: "Special candles for temperature play",
+    unlockRequirement: { ethics: 30 }
+  },
+];
+
+// Explicit Performance Descriptions
+export const EXPLICIT_PERFORMANCE_DESCRIPTIONS = {
+  striptease: [
+    "slowly removes clothing piece by piece, teasing the audience",
+    "performs a sensual dance while gradually undressing",
+    "seductively slides out of their outfit to enthusiastic applause",
+    "does a playful striptease routine, leaving little to imagination",
+    "executes a professional burlesque strip with perfect timing"
+  ],
+  privateLounge: [
+    "gives an intimate private performance in the VIP lounge",
+    "provides a personal show with close interaction",
+    "entertains a high-paying patron with exclusive attention",
+    "performs a sensual dance in the private booth",
+    "offers a one-on-one experience that exceeds expectations"
+  ],
+  afterHours: [
+    "stays after closing for an exclusive private session",
+    "provides elite-level intimate entertainment behind closed doors",
+    "offers premium after-hours companionship",
+    "delivers a discreet, high-end experience for top clients",
+    "gives a no-holds-barred performance for VIP guests"
+  ],
+  lapDance: [
+    "gives a sultry lap dance, grinding rhythmically",
+    "performs an intimate lap dance with close body contact",
+    "delivers a steamy personal dance in the patron's lap",
+    "provides a sensual lap dance that drives the client wild",
+    "executes a professional lap dance with expert technique"
+  ],
+  poleShow: [
+    "spins gracefully on the pole, removing clothing skillfully",
+    "performs athletic pole tricks while gradually undressing",
+    "combines acrobatics with seduction on the pole",
+    "executes advanced pole work in progressively less clothing",
+    "captivates the audience with a sensual pole routine"
+  ],
+  fetishShow: [
+    "performs a BDSM-themed show with props and roleplay",
+    "demonstrates dominance in a fetish performance",
+    "acts out submission scenarios for fetish enthusiasts",
+    "uses fetish gear in an erotic display",
+    "delivers a kink-focused show that satisfies niche desires"
+  ]
+};
+
+// Patron Request Templates
+export const PATRON_REQUESTS: PatronRequest[] = [
+  {
+    id: "req_private_dom",
+    patronName: "Mr. Sterling",
+    requestType: "themed_performance",
+    payment: 1500,
+    ethicsImpact: -5,
+    description: "Wants a private dominance show with a commanding performer",
+    requirements: {
+      performerArchetype: PersonalityArchetype.DOMINANT,
+      minSkill: 6
+    }
+  },
+  {
+    id: "req_fetish_couple",
+    patronName: "The Valentines",
+    requestType: "custom_act",
+    payment: 2000,
+    ethicsImpact: -8,
+    description: "A couple requesting a pet play performance with costumes",
+    requirements: {
+      minSkill: 5
+    }
+  },
+  {
+    id: "req_champagne",
+    patronName: "Ms. Dubois",
+    requestType: "private_show",
+    payment: 1200,
+    ethicsImpact: -3,
+    description: "Wealthy patron wants champagne and an intimate strip show",
+    requirements: {
+      performerArchetype: PersonalityArchetype.FLIRTATIOUS,
+      minSkill: 5
+    }
+  },
+  {
+    id: "req_mystery",
+    patronName: "Anonymous",
+    requestType: "specific_performer",
+    payment: 2500,
+    ethicsImpact: -10,
+    description: "Anonymous high-roller wants an after-hours exclusive with no questions",
+    requirements: {
+      minSkill: 7
+    }
+  },
 ];
 
