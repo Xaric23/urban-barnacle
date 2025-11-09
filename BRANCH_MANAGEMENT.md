@@ -65,7 +65,10 @@ git branch -r
 git push origin --delete branch-name
 
 # Or use GitHub CLI
-gh api -X DELETE /repos/{owner}/{repo}/git/refs/heads/branch-name
+gh api -X DELETE /repos/<owner>/<repo>/git/refs/heads/branch-name
+
+# Example:
+# gh api -X DELETE /repos/Xaric23/urban-barnacle/git/refs/heads/old-feature-branch
 
 # Clean up local references to deleted remote branches
 git fetch --all --prune

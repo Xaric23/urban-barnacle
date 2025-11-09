@@ -137,8 +137,11 @@ if [ ${#MERGED_BRANCHES[@]} -gt 0 ]; then
   echo "Or use the GitHub CLI:"
   echo ""
   for branch in "${MERGED_BRANCHES[@]}"; do
-    echo "gh api -X DELETE /repos/{owner}/{repo}/git/refs/heads/$branch"
+    echo "gh api -X DELETE /repos/\$OWNER/\$REPO/git/refs/heads/$branch"
   done
+  echo ""
+  echo "# Replace \$OWNER and \$REPO with your repository details, e.g.:"
+  echo "# gh api -X DELETE /repos/Xaric23/urban-barnacle/git/refs/heads/old-branch"
   echo ""
 fi
 

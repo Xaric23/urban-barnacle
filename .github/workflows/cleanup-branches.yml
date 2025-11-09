@@ -69,15 +69,15 @@ jobs:
               echo "Branch $branch is fully merged, checking if it can be deleted..."
               
               # Use GitHub API to delete the branch
-              response=$(curl -s -X DELETE \
+              http_code=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
                 -H "Authorization: token $GITHUB_TOKEN" \
-                -H "Accept: application/vnd.github.v3+json" \
+                -H "Accept: application/vnd.github+json" \
                 "https://api.github.com/repos/${{ github.repository }}/git/refs/heads/$branch")
               
-              if [[ $response == *"message"* ]]; then
-                echo "Note: Could not delete $branch - it may be protected or already deleted"
-              else
+              if [[ $http_code == "204" ]]; then
                 echo "✓ Deleted merged branch: $branch"
+              else
+                echo "Note: Could not delete $branch (HTTP $http_code) - it may be protected or already deleted"
               fi
             fi
           done
