@@ -6,6 +6,12 @@ A text-based management game where you run an underground nightclub. Recruit and
 
 **Available on:** Web 🌐 | Windows 💻 | Android 📱
 
+## 🎮 Play Online
+
+**[Play Now on GitHub Pages](https://xaric23.github.io/urban-barnacle/)** 🎮
+
+No installation required! Play directly in your browser with automatic save functionality.
+
 ## 🎮 Features
 
 ### Core Gameplay
@@ -71,6 +77,19 @@ npm run dev
 npm run build
 npm start
 ```
+
+### Deploy to GitHub Pages
+
+The game is automatically deployed to GitHub Pages when changes are pushed to the main branch. The deployment workflow:
+
+1. Builds the Next.js static export
+2. Deploys to GitHub Pages
+3. Makes the game available at: https://xaric23.github.io/urban-barnacle/
+
+**To enable GitHub Pages:**
+1. Go to repository Settings > Pages
+2. Set Source to "GitHub Actions"
+3. The workflow will automatically deploy on the next push to main
 
 ### Build as Executable (Windows)
 To create a standalone Windows .exe file:
