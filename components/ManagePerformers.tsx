@@ -178,6 +178,18 @@ export default function ManagePerformers({ state, onUpdate, onBack }: ManagePerf
               <div className="text-gray-400 text-xs">Relationship</div>
               <div className="text-lg font-bold">{relationship}/10</div>
             </div>
+            {performer.breastSize !== undefined && (
+              <div className="bg-gray-800 rounded p-3">
+                <div className="text-gray-400 text-xs">Breast Size</div>
+                <div className="text-lg font-bold">{performer.breastSize}/10</div>
+              </div>
+            )}
+            {performer.penisSize !== undefined && (
+              <div className="bg-gray-800 rounded p-3">
+                <div className="text-gray-400 text-xs">Penis Size</div>
+                <div className="text-lg font-bold">{performer.penisSize}/10</div>
+              </div>
+            )}
           </div>
           
           <div>

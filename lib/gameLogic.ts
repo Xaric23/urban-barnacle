@@ -150,6 +150,39 @@ export function loadGameState(): GameState | null {
         if (!p.cards) {
           p.cards = [];
         }
+        // Add breast and penis sizes for existing performers if missing
+        if (p.breastSize === undefined) {
+          switch (p.gender) {
+            case Gender.FEMALE:
+              p.breastSize = Math.floor(Math.random() * 10) + 1;
+              break;
+            case Gender.TRANSGENDER:
+            case Gender.INTERSEX:
+              p.breastSize = Math.floor(Math.random() * 10) + 1;
+              break;
+            case Gender.NON_BINARY:
+              if (Math.random() > 0.33) {
+                p.breastSize = Math.floor(Math.random() * 10) + 1;
+              }
+              break;
+          }
+        }
+        if (p.penisSize === undefined) {
+          switch (p.gender) {
+            case Gender.MALE:
+              p.penisSize = Math.floor(Math.random() * 10) + 1;
+              break;
+            case Gender.TRANSGENDER:
+            case Gender.INTERSEX:
+              p.penisSize = Math.floor(Math.random() * 10) + 1;
+              break;
+            case Gender.NON_BINARY:
+              if (Math.random() > 0.33) {
+                p.penisSize = Math.floor(Math.random() * 10) + 1;
+              }
+              break;
+          }
+        }
         return p;
       });
       
@@ -194,6 +227,34 @@ export function generatePerformer(type: PerformerType): Performer {
   // Assign starting cards based on personality
   const startingCards = getStartingCardsForArchetype(personalityArchetype);
 
+  // Assign breast and penis sizes based on gender
+  let breastSize: number | undefined;
+  let penisSize: number | undefined;
+
+  switch (gender) {
+    case Gender.FEMALE:
+      breastSize = Math.floor(Math.random() * 10) + 1; // 1-10
+      break;
+    case Gender.MALE:
+      penisSize = Math.floor(Math.random() * 10) + 1; // 1-10
+      break;
+    case Gender.TRANSGENDER:
+    case Gender.INTERSEX:
+      // Both breast and penis size
+      breastSize = Math.floor(Math.random() * 10) + 1; // 1-10
+      penisSize = Math.floor(Math.random() * 10) + 1; // 1-10
+      break;
+    case Gender.NON_BINARY:
+      // Randomly assign either or both
+      if (Math.random() > 0.33) {
+        breastSize = Math.floor(Math.random() * 10) + 1; // 1-10
+      }
+      if (Math.random() > 0.33) {
+        penisSize = Math.floor(Math.random() * 10) + 1; // 1-10
+      }
+      break;
+  }
+
   return {
     name: generateFullName(),
     performerType: type,
@@ -220,6 +281,8 @@ export function generatePerformer(type: PerformerType): Performer {
     chemistryWith: {},
     relationships: {},
     cards: startingCards,
+    breastSize,
+    penisSize,
   };
 }
 

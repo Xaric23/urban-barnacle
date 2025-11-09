@@ -63,6 +63,18 @@ export default function RecruitPerformer({ state, onUpdate, onBack }: RecruitPer
               <div className="text-gray-400 text-sm">Salary Demand</div>
               <div className="text-xl font-bold text-green-400">${candidate.salary}/day</div>
             </div>
+            {candidate.breastSize !== undefined && (
+              <div className="bg-gray-800 rounded p-3">
+                <div className="text-gray-400 text-sm">Breast Size</div>
+                <div className="text-xl font-bold">{candidate.breastSize}/10</div>
+              </div>
+            )}
+            {candidate.penisSize !== undefined && (
+              <div className="bg-gray-800 rounded p-3">
+                <div className="text-gray-400 text-sm">Penis Size</div>
+                <div className="text-xl font-bold">{candidate.penisSize}/10</div>
+              </div>
+            )}
           </div>
           
           <div className="mt-4">
