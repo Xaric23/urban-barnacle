@@ -34,7 +34,28 @@ A branch is eligible for deletion if:
 
 ### Manual Branch Deletion
 
-If you need to manually delete branches, follow these steps:
+#### One-Time Cleanup Script
+
+For a one-time cleanup of all merged branches, use the provided script:
+
+```bash
+# Run the one-time cleanup script (requires GitHub CLI)
+./scripts/cleanup-merged-branches.sh
+```
+
+**Requirements:**
+- GitHub CLI (`gh`) installed and authenticated
+- Permission to delete branches on the repository
+
+**What it does:**
+- Analyzes all branches
+- Deletes branches that are fully merged into main
+- Protects important branches
+- Shows a summary of deleted branches
+
+#### Individual Branch Deletion
+
+If you need to manually delete specific branches:
 
 ```bash
 # List all remote branches
@@ -42,6 +63,9 @@ git branch -r
 
 # Delete a remote branch
 git push origin --delete branch-name
+
+# Or use GitHub CLI
+gh api -X DELETE /repos/{owner}/{repo}/git/refs/heads/branch-name
 
 # Clean up local references to deleted remote branches
 git fetch --all --prune
