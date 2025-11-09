@@ -12,10 +12,11 @@
     "lint": "eslint",
     "electron": "electron .",
     "electron-dev": "cross-env NODE_ENV=development electron .",
-    "build-electron": "next build && electron-builder",
-    "build-exe": "next build && electron-builder --win --x64",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "build-electron": "next build && electron-builder --publish never",
+    "build-exe": "next build && electron-builder --win --x64 --publish never",
+    "pack": "electron-builder --dir --publish never",
+    "dist": "electron-builder --publish never",
+    "publish": "next build && electron-builder --win --x64 --publish always"
   },
   "build": {
     "appId": "com.xaric23.underground-club-manager",

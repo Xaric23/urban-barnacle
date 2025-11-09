@@ -64,12 +64,28 @@ The Underground Club Manager now includes an automatic update system that keeps 
    npm version patch  # or minor, or major
    ```
 
-2. **Build the Executable**
+2. **Build and Publish**
+   
+   **Option A: Publish to GitHub Releases (with GH_TOKEN)**
    ```bash
+   # Set your GitHub Personal Access Token
+   export GH_TOKEN=your_github_token_here  # Linux/Mac
+   set GH_TOKEN=your_github_token_here     # Windows CMD
+   $env:GH_TOKEN="your_github_token_here"  # Windows PowerShell
+   
+   # Build and publish to GitHub
+   npm run publish
+   ```
+   
+   **Option B: Build Locally and Upload Manually**
+   ```bash
+   # Build the executable (no GitHub token needed)
    npm run build-exe
+   
+   # Then manually upload the installer from dist/ folder to GitHub Releases
    ```
 
-3. **Create GitHub Release**
+3. **Create GitHub Release (if building locally)**
    - Go to GitHub repository releases
    - Click "Create a new release"
    - Tag version: `v0.1.1` (must match package.json version)
