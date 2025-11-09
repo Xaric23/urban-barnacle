@@ -5,8 +5,6 @@
 import { GameState } from './types';
 import { createInitialGameState } from './gameLogic';
 import { 
-  createSecureSave, 
-  verifySecureSave, 
   sanitizeGameState,
   detectTimeManipulation,
   SecureSave 
@@ -42,6 +40,7 @@ export interface BootstrapResult {
 export async function bootstrapGame(
   onProgress?: (state: BootstrapState) => void
 ): Promise<BootstrapResult> {
+  console.log('[Bootstrap] Starting bootstrap process...');
   const warnings: string[] = [];
   
   // Step 1: Initialize
@@ -51,9 +50,11 @@ export async function bootstrapGame(
     message: 'Initializing game systems...',
     warnings: [],
   });
+  console.log('[Bootstrap] Step 1: Initializing...');
   await delay(300);
 
   // Step 2: Check for existing save
+  console.log('[Bootstrap] Step 2: Checking for saved game...');
   updateProgress(onProgress, {
     status: BootstrapStatus.VALIDATING,
     progress: 25,
@@ -63,9 +64,11 @@ export async function bootstrapGame(
   await delay(200);
 
   const savedData = loadFromStorage();
+  console.log('[Bootstrap] Saved data:', savedData ? 'Found' : 'Not found');
   
   if (!savedData) {
     // No save found - create new game
+    console.log('[Bootstrap] Creating new game...');
     updateProgress(onProgress, {
       status: BootstrapStatus.LOADING,
       progress: 75,
@@ -75,6 +78,7 @@ export async function bootstrapGame(
     await delay(200);
 
     const newGame = createInitialGameState();
+    console.log('[Bootstrap] Saving new game...');
     await saveToStorage(newGame);
 
     updateProgress(onProgress, {
@@ -83,6 +87,7 @@ export async function bootstrapGame(
       message: 'Game ready!',
       warnings: [],
     });
+    console.log('[Bootstrap] Bootstrap complete - new game created');
 
     return {
       success: true,
@@ -93,6 +98,7 @@ export async function bootstrapGame(
   }
 
   // Step 3: Validate saved data
+  console.log('[Bootstrap] Step 3: Validating save file...');
   updateProgress(onProgress, {
     status: BootstrapStatus.VALIDATING,
     progress: 40,
@@ -101,20 +107,11 @@ export async function bootstrapGame(
   });
   await delay(300);
 
-  // Try async verification with timeout, fallback to sync if it fails
-  let validation: { valid: boolean; reason?: string };
-  try {
-    validation = await Promise.race([
-      verifySecureSave(savedData),
-      new Promise<{ valid: boolean; reason: string }>((_, reject) => 
-        setTimeout(() => reject(new Error('Verification timeout')), 5000)
-      )
-    ]);
-  } catch (error) {
-    console.warn('Async verification failed, falling back to sync:', error);
-    const { verifySecureSaveSync } = await import('./antiCheat');
-    validation = verifySecureSaveSync(savedData);
-  }
+  // Use sync verification for better compatibility with Electron/older Node
+  console.log('[Bootstrap] Using sync verification for compatibility...');
+  const { verifySecureSaveSync } = await import('./antiCheat');
+  const validation = verifySecureSaveSync(savedData);
+  console.log('[Bootstrap] Sync verification result:', validation);
   
   if (!validation.valid) {
     // Save is corrupted or tampered with
@@ -226,27 +223,21 @@ export async function bootstrapGame(
 
 /**
  * Save game state with anti-cheat protection
+ * Uses synchronous operations to avoid Electron/Node compatibility issues
  */
 export async function saveToStorage(state: GameState): Promise<void> {
   if (typeof window === 'undefined') {
+    console.log('[Bootstrap] saveToStorage: window undefined, skipping');
     return;
   }
 
-  try {
-    // Try async save with timeout
-    const secureSave = await Promise.race([
-      createSecureSave(state),
-      new Promise<SecureSave>((_, reject) => 
-        setTimeout(() => reject(new Error('Save timeout')), 5000)
-      )
-    ]);
-    localStorage.setItem('clubManagerSave', JSON.stringify(secureSave));
-  } catch (error) {
-    console.warn('Async save failed, falling back to sync:', error);
-    const { createSecureSaveSync } = await import('./antiCheat');
-    const secureSave = createSecureSaveSync(state);
-    localStorage.setItem('clubManagerSave', JSON.stringify(secureSave));
-  }
+  console.log('[Bootstrap] saveToStorage: Starting save process...');
+  
+  // Use sync method directly for better compatibility with Electron/older Node
+  const { createSecureSaveSync } = await import('./antiCheat');
+  const secureSave = createSecureSaveSync(state);
+  localStorage.setItem('clubManagerSave', JSON.stringify(secureSave));
+  console.log('[Bootstrap] saveToStorage: Save complete');
 }
 
 /**
@@ -361,7 +352,8 @@ export function exportSave(): string | null {
 export async function importSave(saveData: string): Promise<{ success: boolean; error?: string }> {
   try {
     const save = JSON.parse(saveData) as SecureSave;
-    const validation = await verifySecureSave(save);
+    const { verifySecureSaveSync } = await import('./antiCheat');
+    const validation = verifySecureSaveSync(save);
     
     if (!validation.valid) {
       return { success: false, error: validation.reason };
