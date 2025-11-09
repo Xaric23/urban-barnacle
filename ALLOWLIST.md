@@ -85,11 +85,12 @@ This document lists all external sites, services, and domains that need to be ac
 
 These domains are only needed if building the Android version of the app:
 
-#### Google Maven Repository
+#### Google Maven Repository ⚠️ CRITICAL FOR ANDROID BUILDS
 - **Domain**: `dl.google.com`
 - **Purpose**: Android SDK, build tools, and dependencies
 - **Required For**: Android builds via Capacitor
 - **Protocol**: HTTPS (port 443)
+- **⚠️ Note**: This domain is ABSOLUTELY REQUIRED for Android builds. The Gradle `google()` repository resolves to this domain. Without access, Android builds will fail with "Could not resolve" errors.
 
 #### Google APIs
 - **Domain**: `*.googleapis.com`
@@ -224,7 +225,51 @@ curl -I https://api.github.com
 
 # Test Node.js site
 curl -I https://nodejs.org
+
+# Test Android builds (CRITICAL - must succeed for Android development)
+curl -I https://dl.google.com
+
+# Test Gradle services
+curl -I https://services.gradle.org
 ```
+
+## Troubleshooting Android Build Failures
+
+### Error: "Could not resolve com.android.tools.build:gradle"
+
+**Cause**: Cannot access `dl.google.com`
+
+**Solution**: 
+1. Verify `dl.google.com` is accessible:
+   ```bash
+   curl -I https://dl.google.com
+   ```
+2. If blocked, request your network administrator to allowlist:
+   - `dl.google.com` (Android Maven repository)
+   - `*.googleapis.com` (Google APIs)
+3. Check firewall rules and proxy configuration
+4. Verify DNS resolution: `nslookup dl.google.com`
+
+### Error: "No address associated with hostname"
+
+**Cause**: DNS cannot resolve `dl.google.com`
+
+**Solution**:
+1. Check DNS configuration
+2. Try alternative DNS (e.g., 8.8.8.8)
+3. Verify corporate DNS includes external domains
+4. Check if a proxy is required and configure:
+   ```bash
+   export HTTP_PROXY=http://proxy.company.com:8080
+   export HTTPS_PROXY=http://proxy.company.com:8080
+   ```
+
+### Alternative: Offline Android Build
+
+If `dl.google.com` cannot be accessed, you can:
+1. Download dependencies on a machine with internet access
+2. Copy the Gradle cache (`~/.gradle/caches/`) to the restricted machine
+3. Configure Gradle offline mode (not recommended for development)
 
 ## Summary
 
@@ -236,8 +281,15 @@ curl -I https://nodejs.org
 
 **Additional for Full Build:**
 5. `objects.githubusercontent.com` - Electron binaries
-6. `dl.google.com` - Android builds (optional)
-7. `marketplace.visualstudio.com` - VS Code extensions
+6. `marketplace.visualstudio.com` - VS Code extensions
+
+**CRITICAL for Android Builds:**
+7. ⚠️ `dl.google.com` - Android SDK and build tools (MANDATORY)
+8. `services.gradle.org` - Gradle distribution
+9. `plugins.gradle.org` - Gradle plugins
+10. `repo.maven.apache.org` - Maven dependencies
+
+**Without `dl.google.com`, Android builds will fail immediately.** This domain hosts the Google Maven repository which contains all Android SDK components, build tools, and dependencies required by Gradle.
 
 All other services are optional or for development convenience only.
 
