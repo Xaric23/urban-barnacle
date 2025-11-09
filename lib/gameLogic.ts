@@ -151,37 +151,45 @@ export function loadGameState(): GameState | null {
           p.cards = [];
         }
         // Add breast and penis sizes for existing performers if missing
+        // Also convert old numeric format to new string format
         if (p.breastSize === undefined) {
           switch (p.gender) {
             case Gender.FEMALE:
-              p.breastSize = Math.floor(Math.random() * 10) + 1;
+              p.breastSize = generateBreastSize();
               break;
             case Gender.TRANSGENDER:
             case Gender.INTERSEX:
-              p.breastSize = Math.floor(Math.random() * 10) + 1;
+              p.breastSize = generateBreastSize();
               break;
             case Gender.NON_BINARY:
               if (Math.random() > 0.33) {
-                p.breastSize = Math.floor(Math.random() * 10) + 1;
+                p.breastSize = generateBreastSize();
               }
               break;
           }
+        } else if (typeof p.breastSize === 'number') {
+          // Convert old numeric format to new cup size format
+          p.breastSize = convertOldBreastSize(p.breastSize);
         }
+        
         if (p.penisSize === undefined) {
           switch (p.gender) {
             case Gender.MALE:
-              p.penisSize = Math.floor(Math.random() * 10) + 1;
+              p.penisSize = generatePenisSize();
               break;
             case Gender.TRANSGENDER:
             case Gender.INTERSEX:
-              p.penisSize = Math.floor(Math.random() * 10) + 1;
+              p.penisSize = generatePenisSize();
               break;
             case Gender.NON_BINARY:
               if (Math.random() > 0.33) {
-                p.penisSize = Math.floor(Math.random() * 10) + 1;
+                p.penisSize = generatePenisSize();
               }
               break;
           }
+        } else if (typeof p.penisSize === 'number') {
+          // Convert old numeric format to new inches format
+          p.penisSize = convertOldPenisSize(p.penisSize);
         }
         return p;
       });
@@ -196,6 +204,56 @@ export function deleteGameState(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('clubManagerSave');
   }
+}
+
+// Helper function to generate breast size as cup size
+function generateBreastSize(): string {
+  const cupSizes = ['AA', 'A', 'B', 'C', 'D', 'DD', 'DDD', 'E', 'F', 'G', 'H'];
+  // Weight towards middle sizes (B-D)
+  const weights = [0.05, 0.1, 0.15, 0.2, 0.2, 0.15, 0.08, 0.04, 0.02, 0.01, 0.005];
+  const random = Math.random();
+  let cumulative = 0;
+  for (let i = 0; i < cupSizes.length; i++) {
+    cumulative += weights[i];
+    if (random <= cumulative) {
+      return cupSizes[i];
+    }
+  }
+  return 'C'; // fallback
+}
+
+// Helper function to generate penis size in inches
+function generatePenisSize(): string {
+  // Generate size between 4 and 10 inches, weighted towards 6-8 (average)
+  // Using normal distribution approximation
+  const min = 4;
+  const max = 10;
+  const mean = 7; // average
+  const stdDev = 1.2;
+  
+  // Box-Muller transform for normal distribution
+  const u1 = Math.random();
+  const u2 = Math.random();
+  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+  
+  let size = mean + z * stdDev;
+  size = Math.max(min, Math.min(max, size)); // clamp to range
+  size = Math.round(size * 10) / 10; // round to 1 decimal place
+  
+  return `${size} inches`;
+}
+
+// Helper function to convert old numeric sizes to new format (for backwards compatibility)
+function convertOldBreastSize(oldSize: number): string {
+  const cupSizes = ['AA', 'A', 'B', 'C', 'D', 'DD', 'DDD', 'E', 'F', 'G', 'H'];
+  const index = Math.max(0, Math.min(cupSizes.length - 1, oldSize - 1));
+  return cupSizes[index];
+}
+
+function convertOldPenisSize(oldSize: number): string {
+  // Map 1-10 scale to 4-10 inches
+  const inches = 4 + (oldSize - 1) * 0.67;
+  return `${Math.round(inches * 10) / 10} inches`;
 }
 
 export function generatePerformer(type: PerformerType): Performer {
@@ -228,29 +286,29 @@ export function generatePerformer(type: PerformerType): Performer {
   const startingCards = getStartingCardsForArchetype(personalityArchetype);
 
   // Assign breast and penis sizes based on gender
-  let breastSize: number | undefined;
-  let penisSize: number | undefined;
+  let breastSize: string | undefined;
+  let penisSize: string | undefined;
 
   switch (gender) {
     case Gender.FEMALE:
-      breastSize = Math.floor(Math.random() * 10) + 1; // 1-10
+      breastSize = generateBreastSize();
       break;
     case Gender.MALE:
-      penisSize = Math.floor(Math.random() * 10) + 1; // 1-10
+      penisSize = generatePenisSize();
       break;
     case Gender.TRANSGENDER:
     case Gender.INTERSEX:
       // Both breast and penis size
-      breastSize = Math.floor(Math.random() * 10) + 1; // 1-10
-      penisSize = Math.floor(Math.random() * 10) + 1; // 1-10
+      breastSize = generateBreastSize();
+      penisSize = generatePenisSize();
       break;
     case Gender.NON_BINARY:
       // Randomly assign either or both
       if (Math.random() > 0.33) {
-        breastSize = Math.floor(Math.random() * 10) + 1; // 1-10
+        breastSize = generateBreastSize();
       }
       if (Math.random() > 0.33) {
-        penisSize = Math.floor(Math.random() * 10) + 1; // 1-10
+        penisSize = generatePenisSize();
       }
       break;
   }
