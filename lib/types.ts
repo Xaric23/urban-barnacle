@@ -150,6 +150,13 @@ export interface GameState {
   ownedFetishItems: string[]; // IDs of fetish items
   activePatronRequests: PatronRequest[];
   adultContentLevel: number; // 0-100: How explicit the club is
+  
+  // New: Brothel System
+  brothelRooms: BrothelRoom[];
+  brothelWorkers: BrothelWorker[];
+  brothelSessions: BrothelSession[]; // History of recent sessions
+  brothelReputation: number; // 0-100: Separate reputation for brothel
+  brothelEnabled: boolean; // Whether brothel is unlocked
 }
 
 export interface EventContext {
@@ -312,4 +319,71 @@ export interface PatronRequest {
     minSkill?: number;
     specificService?: string;
   };
+}
+
+// Brothel System Types
+export enum BrothelService {
+  MASSAGE = "massage",
+  ESCORT = "escort",
+  FULL_SERVICE = "full_service",
+  ROLEPLAY = "roleplay",
+  BDSM = "bdsm",
+  COUPLES = "couples",
+  FANTASY = "fantasy",
+  OVERNIGHT = "overnight",
+}
+
+export interface BrothelWorker {
+  id: string;
+  name: string;
+  gender: Gender;
+  personalityArchetype: PersonalityArchetype;
+  skill: number; // 1-10
+  energy: number; // 1-10
+  salary: number;
+  traits: string[];
+  offeredServices: BrothelService[];
+  comfortLevel: number; // 0-100: Comfort with adult work
+  reputation: number; // -10 to 10
+  totalEarnings: number;
+  shiftsWorked: number;
+  breastSize?: string; // Cup size (AA-H)
+  penisSize?: string; // In inches
+}
+
+export interface BrothelRoom {
+  id: string;
+  name: string;
+  tier: number; // 1-3 (Basic, Deluxe, Premium)
+  cost: number;
+  dailyIncome: number;
+  description: string;
+  unlockRequirement: {
+    reputation: number;
+    ethics: number; // Lower ethics unlocks more explicit rooms
+  };
+  capacity: number; // Number of workers that can use this room
+}
+
+export interface SexAction {
+  id: string;
+  name: string;
+  service: BrothelService;
+  description: string; // Tasteful/implied description
+  baseIncome: number;
+  energyCost: number;
+  skillRequirement: number;
+  ethicsImpact: number; // Negative = reduces ethics
+  reputationImpact: number; // Can be positive or negative
+}
+
+export interface BrothelSession {
+  workerId: string;
+  workerName: string;
+  service: BrothelService;
+  roomId: string;
+  income: number;
+  actionsTaken: string[]; // List of action IDs used
+  timestamp: number; // Day number
+  clientSatisfaction: number; // 0-100
 }

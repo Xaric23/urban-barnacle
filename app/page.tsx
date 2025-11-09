@@ -13,11 +13,12 @@ import DramaManager from '@/components/DramaManager';
 import StageCustomizer from '@/components/StageCustomizer';
 import ExpansionDashboard from '@/components/ExpansionDashboard';
 import CrowdMoodDashboard from '@/components/CrowdMoodDashboard';
+import BrothelManager from '@/components/BrothelManager';
 import { GameState } from '@/lib/types';
 import { createInitialGameState, advanceDay, updateChemistryForAllPerformers, updateCrowdMood, applySeasonalTrends, checkForViralTrend, generateRumor, checkForSabotage, calculateExpansionIncome, checkForCelebrityCameo } from '@/lib/gameLogic';
 import { bootstrapGame, saveToStorage, deleteSave, BootstrapState, BootstrapStatus } from '@/lib/bootstrap';
 
-type GameView = 'menu' | 'recruit' | 'manage' | 'run' | 'stats' | 'upgrades' | 'drama' | 'stage' | 'expansions' | 'trends';
+type GameView = 'menu' | 'recruit' | 'manage' | 'run' | 'stats' | 'upgrades' | 'drama' | 'stage' | 'expansions' | 'trends' | 'brothel';
 
 export default function Home() {
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -277,6 +278,14 @@ export default function Home() {
           {currentView === 'trends' && (
             <CrowdMoodDashboard
               state={gameState}
+            />
+          )}
+          
+          {currentView === 'brothel' && (
+            <BrothelManager
+              state={gameState}
+              onUpdate={setGameState}
+              onBack={() => setCurrentView('menu')}
             />
           )}
         </div>

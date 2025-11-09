@@ -1,7 +1,7 @@
 // Game Logic and State Management for Underground Club Manager
 
-import { GameState, Performer, PerformerType, Gender, Upgrade, ClothingSlot, Wardrobe, PersonalityArchetype, ThemedNightType, Rumor } from './types';
-import { PERSONALITY_TRAITS, generateFullName, CLOTHING_CATALOG, SKILL_CARDS, CROWD_KINKS, PERSONALITY_ARCHETYPES, CHEMISTRY_COMPATIBILITY, THEMED_NIGHTS, EXPLICIT_PERFORMANCE_DESCRIPTIONS } from './constants';
+import { GameState, Performer, PerformerType, Gender, Upgrade, ClothingSlot, Wardrobe, PersonalityArchetype, ThemedNightType, Rumor, BrothelWorker, BrothelService, BrothelSession } from './types';
+import { PERSONALITY_TRAITS, generateFullName, CLOTHING_CATALOG, SKILL_CARDS, CROWD_KINKS, PERSONALITY_ARCHETYPES, CHEMISTRY_COMPATIBILITY, THEMED_NIGHTS, EXPLICIT_PERFORMANCE_DESCRIPTIONS, BROTHEL_ROOMS, SEX_ACTIONS, BROTHEL_SERVICE_COMPATIBILITY, BROTHEL_WORKER_SALARIES } from './constants';
 
 export function createInitialGameState(): GameState {
   return {
@@ -54,6 +54,13 @@ export function createInitialGameState(): GameState {
     ownedFetishItems: [],
     activePatronRequests: [],
     adultContentLevel: 50, // Start at moderate level
+    
+    // Brothel system
+    brothelRooms: [],
+    brothelWorkers: [],
+    brothelSessions: [],
+    brothelReputation: 50, // Start at moderate level
+    brothelEnabled: false, // Must be unlocked
   };
 }
 
@@ -143,6 +150,23 @@ export function loadGameState(): GameState | null {
       }
       if (state.adultContentLevel === undefined) {
         state.adultContentLevel = 50;
+      }
+      
+      // Add brothel system fields
+      if (!state.brothelRooms) {
+        state.brothelRooms = [];
+      }
+      if (!state.brothelWorkers) {
+        state.brothelWorkers = [];
+      }
+      if (!state.brothelSessions) {
+        state.brothelSessions = [];
+      }
+      if (state.brothelReputation === undefined) {
+        state.brothelReputation = 50;
+      }
+      if (state.brothelEnabled === undefined) {
+        state.brothelEnabled = false;
       }
       
       // Ensure all performers have new fields
@@ -1000,4 +1024,393 @@ export function checkForCelebrityCameo(state: GameState): { cameo: boolean; cele
   }
   
   return null;
+}
+
+// ===== BROTHEL SYSTEM FUNCTIONS =====
+
+/**
+ * Generate a random brothel worker
+ */
+export function generateBrothelWorker(): BrothelWorker {
+  const genders = Object.values(Gender);
+  const gender = genders[Math.floor(Math.random() * genders.length)];
+  const archetypes = Object.values(PersonalityArchetype);
+  const archetype = archetypes[Math.floor(Math.random() * archetypes.length)];
+  const skill = Math.floor(Math.random() * 5) + 3; // 3-7 starting skill
+  const salaryRange = BROTHEL_WORKER_SALARIES[skill];
+  const salary = Math.floor(Math.random() * (salaryRange.max - salaryRange.min + 1)) + salaryRange.min;
+  
+  // Select 2-4 random traits
+  const numTraits = Math.floor(Math.random() * 3) + 2;
+  const traits: string[] = [];
+  const availableTraits = [...PERSONALITY_TRAITS];
+  for (let i = 0; i < numTraits; i++) {
+    const idx = Math.floor(Math.random() * availableTraits.length);
+    traits.push(availableTraits[idx]);
+    availableTraits.splice(idx, 1);
+  }
+  
+  // Determine compatible services based on archetype
+  const allServices = Object.values(BrothelService);
+  const compatibleServices = allServices.filter(service => {
+    const compatible = BROTHEL_SERVICE_COMPATIBILITY[service];
+    return compatible.includes(archetype);
+  });
+  
+  // Randomly select 2-4 services from compatible ones
+  const numServices = Math.min(Math.floor(Math.random() * 3) + 2, compatibleServices.length);
+  const offeredServices: BrothelService[] = [];
+  const availableServices = [...compatibleServices];
+  for (let i = 0; i < numServices; i++) {
+    const idx = Math.floor(Math.random() * availableServices.length);
+    offeredServices.push(availableServices[idx]);
+    availableServices.splice(idx, 1);
+  }
+  
+  // Generate physical attributes based on gender
+  let breastSize: string | undefined;
+  let penisSize: string | undefined;
+  
+  if (gender === Gender.FEMALE || gender === Gender.TRANSGENDER || gender === Gender.NON_BINARY || gender === Gender.INTERSEX) {
+    const sizes = ['AA', 'A', 'B', 'C', 'D', 'DD', 'E', 'F', 'G', 'H'];
+    breastSize = sizes[Math.floor(Math.random() * sizes.length)];
+  }
+  
+  if (gender === Gender.MALE || gender === Gender.TRANSGENDER || gender === Gender.NON_BINARY || gender === Gender.INTERSEX) {
+    const size = Math.floor(Math.random() * 6) + 5; // 5-10 inches
+    penisSize = `${size} inches`;
+  }
+  
+  return {
+    id: `worker_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    name: generateFullName(),
+    gender,
+    personalityArchetype: archetype,
+    skill,
+    energy: 10,
+    salary,
+    traits,
+    offeredServices,
+    comfortLevel: Math.floor(Math.random() * 40) + 40, // 40-80 starting comfort
+    reputation: 0,
+    totalEarnings: 0,
+    shiftsWorked: 0,
+    breastSize,
+    penisSize
+  };
+}
+
+/**
+ * Hire a brothel worker
+ */
+export function hireBrothelWorker(state: GameState, worker: BrothelWorker): { success: boolean; message: string } {
+  if (!state.brothelEnabled) {
+    return { success: false, message: "Brothel is not unlocked yet!" };
+  }
+  
+  // Calculate hiring cost (1 month salary as signing bonus)
+  const hiringCost = worker.salary * 30;
+  
+  if (state.money < hiringCost) {
+    return { success: false, message: `Not enough money! Hiring cost: $${hiringCost}` };
+  }
+  
+  state.money -= hiringCost;
+  state.brothelWorkers.push(worker);
+  
+  return { success: true, message: `Hired ${worker.name} for $${hiringCost}` };
+}
+
+/**
+ * Unlock the brothel
+ */
+export function unlockBrothel(state: GameState): { success: boolean; message: string } {
+  const cost = 10000;
+  const reputationRequired = 40;
+  const ethicsRequired = 40; // Must be willing to lower ethics
+  
+  if (state.brothelEnabled) {
+    return { success: false, message: "Brothel is already unlocked!" };
+  }
+  
+  if (state.money < cost) {
+    return { success: false, message: `Not enough money! Cost: $${cost}` };
+  }
+  
+  if (state.reputation < reputationRequired) {
+    return { success: false, message: `Reputation too low! Required: ${reputationRequired}` };
+  }
+  
+  if (state.ethicsScore > ethicsRequired) {
+    return { success: false, message: `Ethics too high! Must be willing to operate in grey area (Ethics ≤ ${ethicsRequired})` };
+  }
+  
+  state.money -= cost;
+  state.brothelEnabled = true;
+  state.ethicsScore = Math.max(0, state.ethicsScore - 10); // Opening brothel lowers ethics
+  
+  return { success: true, message: "Brothel unlocked! You can now hire workers and purchase rooms." };
+}
+
+/**
+ * Purchase a brothel room
+ */
+export function purchaseBrothelRoom(state: GameState, roomId: string): { success: boolean; message: string } {
+  const room = BROTHEL_ROOMS.find(r => r.id === roomId);
+  if (!room) {
+    return { success: false, message: "Invalid room!" };
+  }
+  
+  // Check if already owned
+  if (state.brothelRooms.some(r => r.id === roomId)) {
+    return { success: false, message: "You already own this room!" };
+  }
+  
+  // Check requirements
+  if (state.reputation < room.unlockRequirement.reputation) {
+    return { success: false, message: `Reputation too low! Required: ${room.unlockRequirement.reputation}` };
+  }
+  
+  if (state.ethicsScore > room.unlockRequirement.ethics) {
+    return { success: false, message: `Ethics too high! Required: ≤${room.unlockRequirement.ethics}` };
+  }
+  
+  if (state.money < room.cost) {
+    return { success: false, message: `Not enough money! Cost: $${room.cost}` };
+  }
+  
+  state.money -= room.cost;
+  state.brothelRooms.push({ ...room });
+  
+  return { success: true, message: `Purchased ${room.name}!` };
+}
+
+/**
+ * Run brothel operations for the night
+ */
+export function runBrothelOperations(state: GameState): { 
+  income: number; 
+  sessions: BrothelSession[]; 
+  messages: string[];
+  ethicsChange: number;
+} {
+  const messages: string[] = [];
+  const sessions: BrothelSession[] = [];
+  let totalIncome = 0;
+  let totalEthicsImpact = 0;
+  
+  if (!state.brothelEnabled || state.brothelWorkers.length === 0 || state.brothelRooms.length === 0) {
+    return { income: 0, sessions: [], messages: ["Brothel operations inactive"], ethicsChange: 0 };
+  }
+  
+  // Calculate total room capacity
+  const totalCapacity = state.brothelRooms.reduce((sum, room) => sum + room.capacity, 0);
+  
+  // Each worker can work one session per night if they have energy
+  const availableWorkers = state.brothelWorkers.filter(w => w.energy >= 3);
+  
+  if (availableWorkers.length === 0) {
+    messages.push("⚠️ All brothel workers are too tired!");
+    return { income: 0, sessions: [], messages, ethicsChange: 0 };
+  }
+  
+  // Limit workers by room capacity
+  const workingWorkers = availableWorkers.slice(0, Math.min(availableWorkers.length, totalCapacity));
+  
+  messages.push(`🏢 Brothel Operations: ${workingWorkers.length} workers active`);
+  
+  // Each worker performs 1-2 sessions
+  workingWorkers.forEach(worker => {
+    const numSessions = Math.random() > 0.5 ? 2 : 1;
+    
+    for (let i = 0; i < numSessions; i++) {
+      if (worker.energy < 2) break; // Too tired
+      
+      // Pick a random service they offer
+      const service = worker.offeredServices[Math.floor(Math.random() * worker.offeredServices.length)];
+      
+      // Find available actions for this service
+      const availableActions = SEX_ACTIONS.filter(
+        action => action.service === service && 
+        worker.skill >= action.skillRequirement &&
+        worker.energy >= action.energyCost
+      );
+      
+      if (availableActions.length === 0) continue;
+      
+      // Pick 1-3 random actions
+      const numActions = Math.min(Math.floor(Math.random() * 3) + 1, availableActions.length);
+      const selectedActions = [];
+      const actionDescriptions = [];
+      let sessionIncome = 0;
+      let sessionEnergyCost = 0;
+      let sessionEthicsImpact = 0;
+      
+      for (let j = 0; j < numActions; j++) {
+        const action = availableActions[Math.floor(Math.random() * availableActions.length)];
+        selectedActions.push(action.id);
+        actionDescriptions.push(action.description);
+        
+        // Calculate income with skill bonus
+        const skillBonus = 1 + (worker.skill / 20); // Up to 50% bonus at skill 10
+        const comfortBonus = 1 + (worker.comfortLevel / 200); // Up to 50% bonus at comfort 100
+        const actionIncome = Math.floor(action.baseIncome * skillBonus * comfortBonus);
+        
+        sessionIncome += actionIncome;
+        sessionEnergyCost += action.energyCost;
+        sessionEthicsImpact += action.ethicsImpact;
+      }
+      
+      // Apply reputation modifier
+      const reputationBonus = 1 + (state.brothelReputation / 200); // Up to 50% bonus
+      sessionIncome = Math.floor(sessionIncome * reputationBonus);
+      
+      // Deduct energy
+      worker.energy = Math.max(0, worker.energy - Math.ceil(sessionEnergyCost / 2));
+      
+      // Increase worker stats
+      worker.totalEarnings += sessionIncome;
+      worker.shiftsWorked += 1;
+      worker.comfortLevel = Math.min(100, worker.comfortLevel + 1);
+      
+      // Random room assignment
+      const room = state.brothelRooms[Math.floor(Math.random() * state.brothelRooms.length)];
+      
+      // Client satisfaction (based on skill and comfort)
+      const satisfaction = Math.min(100, Math.floor((worker.skill * 8) + (worker.comfortLevel / 2)));
+      
+      // Create session record
+      const session: BrothelSession = {
+        workerId: worker.id,
+        workerName: worker.name,
+        service,
+        roomId: room.id,
+        income: sessionIncome,
+        actionsTaken: selectedActions,
+        timestamp: state.day,
+        clientSatisfaction: satisfaction
+      };
+      
+      sessions.push(session);
+      totalIncome += sessionIncome;
+      totalEthicsImpact += sessionEthicsImpact;
+      
+      // Create message
+      const actionDesc = actionDescriptions[0]; // Show first action
+      messages.push(`💋 ${worker.name} ${actionDesc} (+$${sessionIncome})`);
+    }
+  });
+  
+  // Add room passive income
+  const roomIncome = state.brothelRooms.reduce((sum, room) => sum + room.dailyIncome, 0);
+  totalIncome += roomIncome;
+  
+  if (roomIncome > 0) {
+    messages.push(`🏠 Room rental income: +$${roomIncome}`);
+  }
+  
+  // Update state
+  state.money += totalIncome;
+  state.brothelSessions.push(...sessions);
+  
+  // Keep only last 50 sessions
+  if (state.brothelSessions.length > 50) {
+    state.brothelSessions = state.brothelSessions.slice(-50);
+  }
+  
+  // Update brothel reputation based on satisfaction
+  if (sessions.length > 0) {
+    const avgSatisfaction = sessions.reduce((sum, s) => sum + s.clientSatisfaction, 0) / sessions.length;
+    const reputationChange = Math.floor((avgSatisfaction - 50) / 10); // -5 to +5
+    state.brothelReputation = Math.max(0, Math.min(100, state.brothelReputation + reputationChange));
+  }
+  
+  messages.push(`💰 Total brothel income: $${totalIncome}`);
+  
+  return { 
+    income: totalIncome, 
+    sessions, 
+    messages,
+    ethicsChange: Math.floor(totalEthicsImpact / 10) // Average impact
+  };
+}
+
+/**
+ * Train a brothel worker (increase skill)
+ */
+export function trainBrothelWorker(state: GameState, workerId: string): { success: boolean; message: string } {
+  const worker = state.brothelWorkers.find(w => w.id === workerId);
+  if (!worker) {
+    return { success: false, message: "Worker not found!" };
+  }
+  
+  if (worker.skill >= 10) {
+    return { success: false, message: `${worker.name} is already at max skill!` };
+  }
+  
+  const cost = worker.skill * 500; // Increases with skill level
+  
+  if (state.money < cost) {
+    return { success: false, message: `Not enough money! Training cost: $${cost}` };
+  }
+  
+  state.money -= cost;
+  worker.skill += 1;
+  
+  // Update salary with skill increase
+  const newSalaryRange = BROTHEL_WORKER_SALARIES[worker.skill];
+  worker.salary = Math.floor((newSalaryRange.min + newSalaryRange.max) / 2);
+  
+  return { success: true, message: `${worker.name} skill increased to ${worker.skill}! New salary: $${worker.salary}/day` };
+}
+
+/**
+ * Fire a brothel worker
+ */
+export function fireBrothelWorker(state: GameState, workerId: string): { success: boolean; message: string } {
+  const workerIndex = state.brothelWorkers.findIndex(w => w.id === workerId);
+  if (workerIndex === -1) {
+    return { success: false, message: "Worker not found!" };
+  }
+  
+  const worker = state.brothelWorkers[workerIndex];
+  
+  // Pay severance (1 week salary)
+  const severance = worker.salary * 7;
+  state.money -= severance;
+  
+  state.brothelWorkers.splice(workerIndex, 1);
+  
+  return { success: true, message: `Fired ${worker.name}. Paid $${severance} severance.` };
+}
+
+/**
+ * Add or remove a service from a worker's offerings
+ */
+export function toggleWorkerService(state: GameState, workerId: string, service: BrothelService): { success: boolean; message: string } {
+  const worker = state.brothelWorkers.find(w => w.id === workerId);
+  if (!worker) {
+    return { success: false, message: "Worker not found!" };
+  }
+  
+  // Check if service is compatible with worker's archetype
+  const compatible = BROTHEL_SERVICE_COMPATIBILITY[service];
+  if (!compatible.includes(worker.personalityArchetype)) {
+    return { success: false, message: `${worker.name}'s personality (${worker.personalityArchetype}) is not compatible with this service!` };
+  }
+  
+  const serviceIndex = worker.offeredServices.indexOf(service);
+  
+  if (serviceIndex >= 0) {
+    // Remove service
+    if (worker.offeredServices.length <= 1) {
+      return { success: false, message: "Worker must offer at least one service!" };
+    }
+    worker.offeredServices.splice(serviceIndex, 1);
+    return { success: true, message: `Removed ${service} service from ${worker.name}` };
+  } else {
+    // Add service
+    worker.offeredServices.push(service);
+    return { success: true, message: `Added ${service} service to ${worker.name}` };
+  }
 }

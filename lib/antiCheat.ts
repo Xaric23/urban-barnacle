@@ -283,6 +283,11 @@ export interface SecureSave {
   ownedFetishItems?: string[];
   activePatronRequests?: PatronRequest[];
   adultContentLevel?: number;
+  brothelRooms?: any[];
+  brothelWorkers?: any[];
+  brothelSessions?: any[];
+  brothelReputation?: number;
+  brothelEnabled?: boolean;
 }
 
 export async function createSecureSave(state: GameState): Promise<SecureSave> {
@@ -463,6 +468,11 @@ export async function verifySecureSave(save: SecureSave): Promise<{ valid: boole
       ownedFetishItems: save.ownedFetishItems || [],
       activePatronRequests: save.activePatronRequests || [],
       adultContentLevel: save.adultContentLevel || 50,
+      brothelRooms: save.brothelRooms || [],
+      brothelWorkers: save.brothelWorkers || [],
+      brothelSessions: save.brothelSessions || [],
+      brothelReputation: save.brothelReputation || 50,
+      brothelEnabled: save.brothelEnabled || false,
     };
 
     // Validate game state
@@ -533,6 +543,11 @@ export function verifySecureSaveSync(save: SecureSave): { valid: boolean; reason
     ownedFetishItems: save.ownedFetishItems || [],
     activePatronRequests: save.activePatronRequests || [],
     adultContentLevel: save.adultContentLevel || 50,
+    brothelRooms: save.brothelRooms || [],
+    brothelWorkers: save.brothelWorkers || [],
+    brothelSessions: save.brothelSessions || [],
+    brothelReputation: save.brothelReputation || 50,
+    brothelEnabled: save.brothelEnabled || false,
   };
 
   // Validate game state
