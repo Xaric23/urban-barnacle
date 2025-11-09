@@ -233,36 +233,104 @@ curl -I https://dl.google.com
 curl -I https://services.gradle.org
 ```
 
+### Understanding Connection Errors
+
+Different error types indicate different problems:
+
+**Exit Code 6: Could not resolve host**
+```bash
+$ curl -I https://dl.google.com
+curl: (6) Could not resolve host: dl.google.com
+```
+- **Cause**: DNS-level blocking or DNS resolution failure
+- **Not a 404 error**: The domain name cannot be resolved at all
+- **Verify with**: `nslookup dl.google.com` (will show "REFUSED" or "can't find")
+- **Solution**: Request DNS allowlisting from network administrator
+
+**Exit Code 0 with 404 Not Found**
+```bash
+$ curl -I https://example.com/missing-file
+HTTP/2 404
+```
+- **Cause**: Domain accessible but specific resource doesn't exist
+- **Different from DNS blocking**: The server responds with an HTTP error
+- **Solution**: Check the URL path or resource availability
+
+**Connection Timeout**
+```bash
+$ curl -I https://example.com
+curl: (28) Connection timed out after 30000 milliseconds
+```
+- **Cause**: Firewall blocking or network connectivity issue
+- **Solution**: Check firewall rules and network configuration
+
 ## Troubleshooting Android Build Failures
 
 ### Error: "Could not resolve com.android.tools.build:gradle"
 
 **Cause**: Cannot access `dl.google.com`
 
-**Solution**: 
-1. Verify `dl.google.com` is accessible:
+**Diagnostic Steps**: 
+1. Test if `dl.google.com` is accessible:
    ```bash
    curl -I https://dl.google.com
    ```
-2. If blocked, request your network administrator to allowlist:
+   
+2. Check the error type:
+   - **Exit code 6** (`Could not resolve host`) = DNS-level blocking or resolution failure
+   - **404 error** = Domain is accessible but resource not found (different issue)
+   - **Connection timeout** = Firewall blocking
+   
+3. Verify DNS resolution:
+   ```bash
+   nslookup dl.google.com
+   # Expected: IP address (e.g., 142.250.x.x)
+   # Problem: "server can't find" or "REFUSED" = DNS blocking
+   ```
+
+**Solution**: 
+1. If DNS blocking detected (exit code 6 or nslookup REFUSED):
+   - Request your network administrator to allowlist in DNS
    - `dl.google.com` (Android Maven repository)
    - `*.googleapis.com` (Google APIs)
+2. If 404 error (unlikely for this domain):
+   - Check the specific URL path being accessed
+   - Verify Gradle version compatibility
 3. Check firewall rules and proxy configuration
-4. Verify DNS resolution: `nslookup dl.google.com`
+4. Try alternative DNS servers temporarily:
+   ```bash
+   # Linux: Edit /etc/resolv.conf (temporary)
+   nameserver 8.8.8.8
+   nameserver 8.8.4.4
+   ```
 
 ### Error: "No address associated with hostname"
 
-**Cause**: DNS cannot resolve `dl.google.com`
+**Cause**: DNS cannot resolve `dl.google.com` (DNS-level blocking, not a 404 error)
+
+**Verification**:
+```bash
+# This should return "Could not resolve host" (exit code 6)
+curl -I https://dl.google.com
+# Exit code 6 confirms DNS issue, not HTTP 404
+
+# DNS lookup should show REFUSED
+nslookup dl.google.com
+```
 
 **Solution**:
-1. Check DNS configuration
-2. Try alternative DNS (e.g., 8.8.8.8)
-3. Verify corporate DNS includes external domains
+1. Confirm DNS blocking vs. other issues:
+   - DNS blocking: `curl` exit code 6, `nslookup` shows REFUSED
+   - HTTP 404: `curl` shows "404 Not Found" with exit code 0
+   - Network issue: Connection timeout
+2. Request DNS allowlisting from network administrator
+3. Try alternative DNS (e.g., 8.8.8.8, 1.1.1.1)
 4. Check if a proxy is required and configure:
    ```bash
    export HTTP_PROXY=http://proxy.company.com:8080
    export HTTPS_PROXY=http://proxy.company.com:8080
    ```
+5. For corporate networks: DNS may need internal allowlist entry
 
 ### Alternative: Offline Android Build
 
