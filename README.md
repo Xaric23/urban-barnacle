@@ -91,6 +91,8 @@ The game is automatically deployed to GitHub Pages when changes are pushed to th
 2. Set Source to "GitHub Actions"
 3. The workflow will automatically deploy on the next push to main
 
+**Note:** The repository includes a `.nojekyll` file in the `public/` directory to ensure GitHub Pages doesn't use Jekyll processing, which would otherwise ignore the `_next` folder containing the app's assets.
+
 ### Build as Executable (Windows)
 To create a standalone Windows .exe file:
 
