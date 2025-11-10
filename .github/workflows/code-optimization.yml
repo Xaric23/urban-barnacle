@@ -7,10 +7,15 @@ on:
     branches: [ main ]
   workflow_dispatch:  # Allow manual trigger
 
+permissions:
+  contents: read
+
 jobs:
   bundle-analysis:
     name: Bundle Size Analysis
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
     - name: Checkout code
@@ -56,6 +61,8 @@ jobs:
   dependency-analysis:
     name: Dependency Analysis
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
     - name: Checkout code
@@ -101,6 +108,8 @@ jobs:
   code-complexity:
     name: Code Complexity Analysis
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
     - name: Checkout code
@@ -143,6 +152,8 @@ jobs:
   dead-code-detection:
     name: Dead Code Detection
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
     - name: Checkout code
@@ -183,6 +194,8 @@ jobs:
   performance-hints:
     name: Performance Optimization Hints
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
     - name: Checkout code
@@ -256,6 +269,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [bundle-analysis, dependency-analysis, code-complexity, dead-code-detection, performance-hints]
     if: always()
+    permissions:
+      contents: read
     
     steps:
     - name: Summary
