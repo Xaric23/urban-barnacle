@@ -1,0 +1,287 @@
+name: Code Optimization Scanner
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: read
+
+jobs:
+  bundle-analysis:
+    name: Bundle Size Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build application
+      run: npm run build
+      env:
+        ANALYZE: true
+    
+    - name: Analyze bundle sizes
+      run: |
+        echo "## Bundle Analysis" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Analyzing Next.js bundle sizes..." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Check for large bundles in the build output
+        if [ -d ".next" ]; then
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          du -sh .next/* | sort -hr | head -10 >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check static page sizes
+          if [ -d "out" ]; then
+            echo "### Static Page Sizes" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            find out -name "*.html" -exec du -h {} \; | sort -hr | head -10 >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+        fi
+
+  dependency-analysis:
+    name: Dependency Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install analysis tools
+      run: npm install -g depcheck
+    
+    - name: Check for unused dependencies
+      run: |
+        echo "## Dependency Analysis" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Checking for unused dependencies..." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Run depcheck and capture output
+        depcheck --json > depcheck-output.json || true
+        
+        # Parse and display results
+        if [ -f "depcheck-output.json" ]; then
+          echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+          cat depcheck-output.json | jq '.dependencies' >> $GITHUB_STEP_SUMMARY || cat depcheck-output.json >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        fi
+    
+    - name: Check dependency sizes
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Top 10 Largest Dependencies" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        du -sh node_modules/* | sort -hr | head -10 >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+  code-complexity:
+    name: Code Complexity Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install complexity analysis tools
+      run: npm install -g typescript-complexity
+    
+    - name: Analyze code complexity
+      run: |
+        echo "## Code Complexity Analysis" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Analyzing TypeScript code complexity..." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Analyze main source directories
+        echo "### Complexity Report" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        
+        # Find TypeScript files and count lines
+        echo "File Statistics:" >> $GITHUB_STEP_SUMMARY
+        echo "Total TypeScript/TSX files: $(find lib components app -type f \( -name "*.ts" -o -name "*.tsx" \) | wc -l)" >> $GITHUB_STEP_SUMMARY
+        echo "Total lines of code: $(find lib components app -type f \( -name "*.ts" -o -name "*.tsx" \) -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}')" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Find largest files
+        echo "Largest files (top 10):" >> $GITHUB_STEP_SUMMARY
+        find lib components app -type f \( -name "*.ts" -o -name "*.tsx" \) -exec wc -l {} + 2>/dev/null | sort -rn | head -11 | tail -10 >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+  dead-code-detection:
+    name: Dead Code Detection
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install ts-unused-exports
+      run: npm install -g ts-unused-exports
+    
+    - name: Detect unused exports
+      run: |
+        echo "## Dead Code Detection" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Scanning for unused exports..." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Run ts-unused-exports
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        ts-unused-exports tsconfig.json --ignoreFiles="next-env.d.ts" > unused-exports.txt || true
+        
+        if [ -s unused-exports.txt ]; then
+          cat unused-exports.txt >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ Found unused exports that could be removed." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "✅ No unused exports detected!" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+  performance-hints:
+    name: Performance Optimization Hints
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Analyze for performance optimizations
+      run: |
+        echo "## Performance Optimization Hints" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Check for console.log statements
+        echo "### Console.log Usage" >> $GITHUB_STEP_SUMMARY
+        console_count=$(grep -r "console\.log" lib components app --include="*.ts" --include="*.tsx" | wc -l)
+        echo "Found $console_count console.log statements" >> $GITHUB_STEP_SUMMARY
+        if [ "$console_count" -gt 0 ]; then
+          echo "⚠️ Consider removing console.log statements in production code" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          grep -rn "console\.log" lib components app --include="*.ts" --include="*.tsx" | head -10 >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "✅ No console.log statements found" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Check for debugger statements
+        echo "### Debugger Statements" >> $GITHUB_STEP_SUMMARY
+        debugger_count=$(grep -r "debugger" lib components app --include="*.ts" --include="*.tsx" | wc -l)
+        echo "Found $debugger_count debugger statements" >> $GITHUB_STEP_SUMMARY
+        if [ "$debugger_count" -gt 0 ]; then
+          echo "⚠️ Remove debugger statements before production" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          grep -rn "debugger" lib components app --include="*.ts" --include="*.tsx" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "✅ No debugger statements found" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Check for any/unknown usage
+        echo "### Type Safety Check" >> $GITHUB_STEP_SUMMARY
+        any_count=$(grep -r ": any" lib components app --include="*.ts" --include="*.tsx" | wc -l)
+        echo "Found $any_count 'any' type usages" >> $GITHUB_STEP_SUMMARY
+        if [ "$any_count" -gt 0 ]; then
+          echo "💡 Consider replacing 'any' types with proper TypeScript types for better type safety" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "✅ Good type safety - no 'any' types found" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Check for TODO/FIXME comments
+        echo "### Code Quality Markers" >> $GITHUB_STEP_SUMMARY
+        todo_count=$(grep -ri "TODO\|FIXME" lib components app --include="*.ts" --include="*.tsx" | wc -l)
+        echo "Found $todo_count TODO/FIXME comments" >> $GITHUB_STEP_SUMMARY
+        if [ "$todo_count" -gt 0 ]; then
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          grep -rin "TODO\|FIXME" lib components app --include="*.ts" --include="*.tsx" | head -10 >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        fi
+
+  summary:
+    name: Optimization Summary
+    runs-on: ubuntu-latest
+    needs: [bundle-analysis, dependency-analysis, code-complexity, dead-code-detection, performance-hints]
+    if: always()
+    permissions:
+      contents: read
+    
+    steps:
+    - name: Summary
+      run: |
+        echo "# Code Optimization Scan Complete" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "All optimization scans have been completed. Check the individual job outputs above for detailed results." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Quick Links" >> $GITHUB_STEP_SUMMARY
+        echo "- Bundle Analysis: Check for large bundles that could be split" >> $GITHUB_STEP_SUMMARY
+        echo "- Dependency Analysis: Review unused dependencies" >> $GITHUB_STEP_SUMMARY
+        echo "- Code Complexity: Identify complex code that could be refactored" >> $GITHUB_STEP_SUMMARY
+        echo "- Dead Code Detection: Find and remove unused exports" >> $GITHUB_STEP_SUMMARY
+        echo "- Performance Hints: Quick wins for performance improvements" >> $GITHUB_STEP_SUMMARY
