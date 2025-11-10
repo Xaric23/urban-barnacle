@@ -207,6 +207,18 @@ Use the pre-configured development container for a consistent development enviro
 - **GitHub Codespaces**: One-click cloud development environment
 - See [.devcontainer/README.md](.devcontainer/README.md) for setup instructions
 
+### GitHub Actions Workflows
+
+This repository includes several automated workflows:
+
+- **CI (Continuous Integration)**: Runs linting, type checking, and builds on every PR and push to main
+- **Deploy to GitHub Pages**: Automatically deploys the web app when changes are merged to main
+- **Android Build**: Creates APK files when version tags are pushed
+- **Code Optimization Scanner**: Analyzes code for optimization opportunities on PRs and main branch
+- **Branch Cleanup**: Automatically removes merged branches
+
+See [CODE_OPTIMIZATION_WORKFLOW.md](CODE_OPTIMIZATION_WORKFLOW.md) for details on using the code optimization scanner.
+
 ### Network Requirements
 
 See [ALLOWLIST.md](ALLOWLIST.md) for a complete list of required external services and domains for development.
