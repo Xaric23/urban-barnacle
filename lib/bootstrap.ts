@@ -7,7 +7,9 @@ import { createInitialGameState } from './gameLogic';
 import { 
   sanitizeGameState,
   detectTimeManipulation,
-  SecureSave 
+  SecureSave,
+  verifySecureSaveSync,
+  createSecureSaveSync
 } from './antiCheat';
 
 export enum BootstrapStatus {
@@ -110,7 +112,6 @@ export async function bootstrapGame(
 
   // Use sync verification for better compatibility with Electron/older Node
   console.log('[Bootstrap] Using sync verification for compatibility...');
-  const { verifySecureSaveSync } = await import('./antiCheat');
   const validation = verifySecureSaveSync(savedData);
   console.log('[Bootstrap] Sync verification result:', validation);
   
@@ -265,7 +266,6 @@ export async function saveToStorage(state: GameState): Promise<void> {
   console.log('[Bootstrap] saveToStorage: Starting save process...');
   
   // Use sync method directly for better compatibility with Electron/older Node
-  const { createSecureSaveSync } = await import('./antiCheat');
   const secureSave = createSecureSaveSync(state);
   localStorage.setItem('clubManagerSave', JSON.stringify(secureSave));
   console.log('[Bootstrap] saveToStorage: Save complete');
@@ -383,7 +383,6 @@ export function exportSave(): string | null {
 export async function importSave(saveData: string): Promise<{ success: boolean; error?: string }> {
   try {
     const save = JSON.parse(saveData) as SecureSave;
-    const { verifySecureSaveSync } = await import('./antiCheat');
     const validation = verifySecureSaveSync(save);
     
     if (!validation.valid) {
