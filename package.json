@@ -66,10 +66,10 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "cross-env": "^10.1.0",
-    "electron": "^39.2.6",
-    "electron-builder": "26.3.5",
+    "electron": "^39.2.7",
+    "electron-builder": "26.3.6",
     "eslint": "^9",
-    "eslint-config-next": "16.0.7",
+    "eslint-config-next": "16.0.10",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
