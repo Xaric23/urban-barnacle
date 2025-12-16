@@ -124,9 +124,6 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
-    - name: Install complexity analysis tools
-      run: npm install -g typescript-complexity
-    
     - name: Analyze code complexity
       run: |
         echo "## Code Complexity Analysis" >> $GITHUB_STEP_SUMMARY
