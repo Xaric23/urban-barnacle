@@ -17,12 +17,19 @@ export async function generateChecksum(data: Record<string, unknown>): Promise<s
     console.log('[AntiCheat] generateChecksum: Starting...');
     
     // Check if Web Crypto API is available
-    // In Electron with contextIsolation, we need to check both crypto and subtle
-    // Also verify it's the Web Crypto API and not Node's crypto module
-    if (typeof window === 'undefined' || 
-        typeof crypto === 'undefined' || 
-        typeof crypto.subtle === 'undefined' ||
-        typeof crypto.subtle.digest !== 'function') {
+    // Use safe feature detection wrapped in try-catch to prevent freezing on GitHub Pages
+    let hasWebCrypto = false;
+    try {
+      hasWebCrypto = 
+        typeof window !== 'undefined' &&
+        typeof globalThis.crypto !== 'undefined' &&
+        typeof globalThis.crypto.subtle !== 'undefined' &&
+        typeof globalThis.crypto.subtle.digest === 'function';
+    } catch {
+      hasWebCrypto = false;
+    }
+    
+    if (!hasWebCrypto) {
       console.warn('[AntiCheat] Web Crypto API not available, using sync fallback');
       return generateChecksumSync(data);
     }
@@ -47,7 +54,7 @@ export async function generateChecksum(data: Record<string, unknown>): Promise<s
     // Use Web Crypto API for SHA-256
     const encoder = new TextEncoder();
     const msgBuffer = encoder.encode(message);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashBuffer = await globalThis.crypto.subtle.digest('SHA-256', msgBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
@@ -293,11 +300,19 @@ export interface SecureSave {
 export async function createSecureSave(state: GameState): Promise<SecureSave> {
   try {
     // Check if Web Crypto API is actually available and working
-    // In Electron with older Node versions, it might not be available
-    if (typeof window === 'undefined' || 
-        typeof crypto === 'undefined' || 
-        typeof crypto.subtle === 'undefined' ||
-        typeof crypto.subtle.digest !== 'function') {
+    // Use safe feature detection wrapped in try-catch to prevent freezing on GitHub Pages
+    let hasWebCrypto = false;
+    try {
+      hasWebCrypto = 
+        typeof window !== 'undefined' &&
+        typeof globalThis.crypto !== 'undefined' &&
+        typeof globalThis.crypto.subtle !== 'undefined' &&
+        typeof globalThis.crypto.subtle.digest === 'function';
+    } catch {
+      hasWebCrypto = false;
+    }
+    
+    if (!hasWebCrypto) {
       console.warn('[AntiCheat] Web Crypto API not available, using sync fallback');
       return createSecureSaveSync(state);
     }
@@ -413,10 +428,19 @@ export async function verifySecureSave(save: SecureSave): Promise<{ valid: boole
     }
 
     // Check if Web Crypto API is available
-    if (typeof window === 'undefined' || 
-        typeof crypto === 'undefined' || 
-        typeof crypto.subtle === 'undefined' ||
-        typeof crypto.subtle.digest !== 'function') {
+    // Use safe feature detection wrapped in try-catch to prevent freezing on GitHub Pages
+    let hasWebCrypto = false;
+    try {
+      hasWebCrypto = 
+        typeof window !== 'undefined' &&
+        typeof globalThis.crypto !== 'undefined' &&
+        typeof globalThis.crypto.subtle !== 'undefined' &&
+        typeof globalThis.crypto.subtle.digest === 'function';
+    } catch {
+      hasWebCrypto = false;
+    }
+    
+    if (!hasWebCrypto) {
       console.warn('[AntiCheat] Web Crypto API not available, using sync verification');
       return verifySecureSaveSync(save);
     }
