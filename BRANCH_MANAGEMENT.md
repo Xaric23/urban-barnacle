@@ -4,6 +4,19 @@
 
 This repository uses an automated branch cleanup system to maintain a clean and organized branch structure.
 
+## 🚨 Current Status: Branch Cleanup in Progress
+
+As of February 2026, this repository has accumulated **44 unnecessary branches** that need to be removed:
+- 38 merged branches from completed PRs
+- 6 closed (not merged) branches
+
+**See the [CLEANUP_GUIDE.md](./CLEANUP_GUIDE.md) for detailed instructions on removing these branches.**
+
+All branches are currently protected, preventing automatic deletion. Manual intervention is required to:
+1. Review the list of branches to delete (see [BRANCHES_TO_DELETE.md](./BRANCHES_TO_DELETE.md))
+2. Remove branch protection for stale branches
+3. Execute the deletion script or manually delete via GitHub UI
+
 ## Protected Branches
 
 The following branches are protected and will **never** be automatically deleted:
@@ -33,6 +46,24 @@ A branch is eligible for deletion if:
 3. It has **no unmerged commits**
 
 ### Manual Branch Deletion
+
+#### Current Cleanup Task
+
+**For the current batch of 44 unnecessary branches**, use the dedicated cleanup script:
+
+```bash
+# First, review the branches to delete
+cat BRANCHES_TO_DELETE.md
+
+# Run in dry-run mode to see what would be deleted
+bash scripts/delete_unnecessary_branches.sh --dry-run
+
+# Remove branch protection (requires admin access)
+# Then execute the actual deletion
+bash scripts/delete_unnecessary_branches.sh
+```
+
+**See [CLEANUP_GUIDE.md](./CLEANUP_GUIDE.md) for complete instructions.**
 
 #### One-Time Cleanup Script
 
