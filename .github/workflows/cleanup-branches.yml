@@ -47,13 +47,18 @@ jobs:
           ALL_BRANCHES=$(git branch -r | grep -v HEAD | sed 's/origin\///' | tr -d ' ')
           
           echo "Checking branches for deletion..."
+          deleted_count=0
+          skipped_count=0
+          protected_count=0
+          
           for branch in $ALL_BRANCHES; do
-            # Skip protected branches
+            # Skip protected branches by name
             skip=false
             for protected in "${PROTECTED_BRANCHES[@]}"; do
               if [[ "$branch" == "$protected" ]]; then
                 echo "Skipping protected branch: $branch"
                 skip=true
+                ((skipped_count++))
                 break
               fi
             done
@@ -62,11 +67,27 @@ jobs:
               continue
             fi
             
+            # Check if branch is protected in GitHub
+            echo "Checking protection status for $branch..."
+            protection_status=$(curl -s -w "%{http_code}" -o /tmp/protection_response.json \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${{ github.repository }}/branches/$branch/protection")
+            
+            # If branch has protection (returns 200), skip it
+            if [[ $protection_status == "200" ]]; then
+              echo "⚠️  Branch $branch is protected in GitHub - skipping"
+              ((protected_count++))
+              continue
+            fi
+            
             # Check if branch is merged into default branch
-            if git log "$DEFAULT_BRANCH..$branch" --oneline | grep -q .; then
+            # Use origin/ prefix for remote branch comparison
+            if git log "origin/$DEFAULT_BRANCH..origin/$branch" --oneline 2>/dev/null | grep -q .; then
               echo "Branch $branch has unmerged commits, skipping..."
+              ((skipped_count++))
             else
-              echo "Branch $branch is fully merged, checking if it can be deleted..."
+              echo "Branch $branch is fully merged, attempting to delete..."
               
               # Use GitHub API to delete the branch
               http_code=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
@@ -75,18 +96,35 @@ jobs:
                 "https://api.github.com/repos/${{ github.repository }}/git/refs/heads/$branch")
               
               if [[ $http_code == "204" ]]; then
-                echo "✓ Deleted merged branch: $branch"
+                echo "✅ Deleted merged branch: $branch"
+                ((deleted_count++))
+              elif [[ $http_code == "422" ]]; then
+                echo "⚠️  Cannot delete $branch (HTTP 422) - branch may be protected or have a protection rule"
+                ((protected_count++))
               else
-                echo "Note: Could not delete $branch (HTTP $http_code) - it may be protected or already deleted"
+                echo "❌ Failed to delete $branch (HTTP $http_code)"
+                ((skipped_count++))
               fi
             fi
           done
           
+          echo ""
+          echo "================================================"
           echo "Branch cleanup completed!"
+          echo "  Deleted: $deleted_count"
+          echo "  Protected: $protected_count"
+          echo "  Skipped: $skipped_count"
+          echo "================================================"
 
       - name: Summary
         run: |
           echo "### Branch Cleanup Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Merged branches have been cleaned up automatically." >> $GITHUB_STEP_SUMMARY
-          echo "Protected branches (main, develop, etc.) are preserved." >> $GITHUB_STEP_SUMMARY
+          echo "✅ Workflow completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** This workflow only deletes branches that are:" >> $GITHUB_STEP_SUMMARY
+          echo "- Fully merged into the default branch" >> $GITHUB_STEP_SUMMARY
+          echo "- Not protected in GitHub settings" >> $GITHUB_STEP_SUMMARY
+          echo "- Not in the protected branches list (main, master, develop, staging, production)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "If branches are not being deleted, check if they have branch protection rules enabled in GitHub repository settings." >> $GITHUB_STEP_SUMMARY
