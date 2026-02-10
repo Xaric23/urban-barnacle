@@ -2,6 +2,13 @@
 
 import { GameState, Performer, PerformerType, Gender, Upgrade, ClothingSlot, Wardrobe, PersonalityArchetype, ThemedNightType, Rumor, BrothelWorker, BrothelService, BrothelSession } from './types';
 import { PERSONALITY_TRAITS, generateFullName, CLOTHING_CATALOG, SKILL_CARDS, CROWD_KINKS, PERSONALITY_ARCHETYPES, CHEMISTRY_COMPATIBILITY, THEMED_NIGHTS, EXPLICIT_PERFORMANCE_DESCRIPTIONS, BROTHEL_ROOMS, SEX_ACTIONS, BROTHEL_SERVICE_COMPATIBILITY, BROTHEL_WORKER_SALARIES } from './constants';
+import { 
+  createSecureSaveSync, 
+  verifySecureSaveSync, 
+  SecureSave,
+  sanitizeGameState,
+  detectTimeManipulation
+} from './antiCheat';
 
 export function createInitialGameState(): GameState {
   return {
@@ -1413,4 +1420,163 @@ export function toggleWorkerService(state: GameState, workerId: string, service:
     worker.offeredServices.push(service);
     return { success: true, message: `Added ${service} service to ${worker.name}` };
   }
+}
+
+// ============================================================================
+// Save/Load Functions
+// ============================================================================
+
+/**
+ * Save game state to localStorage with anti-cheat protection
+ */
+export function saveGame(state: GameState): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    const secureSave = createSecureSaveSync(state);
+    localStorage.setItem('clubManagerSave', JSON.stringify(secureSave));
+  } catch (error) {
+    console.error('Failed to save game:', error);
+  }
+}
+
+/**
+ * Load game state from localStorage with validation
+ * Returns null if no save exists or if save is invalid
+ */
+export function loadGame(): GameState | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const saved = localStorage.getItem('clubManagerSave');
+    if (!saved) {
+      return null;
+    }
+
+    const secureSave = JSON.parse(saved) as SecureSave;
+    
+    // Validate save
+    const validation = verifySecureSaveSync(secureSave);
+    if (!validation.valid) {
+      console.warn('Save validation failed:', validation.reason);
+      return null;
+    }
+
+    // Convert SecureSave to GameState
+    let gameState: GameState = {
+      day: secureSave.day,
+      money: secureSave.money,
+      reputation: secureSave.reputation,
+      ethicsScore: secureSave.ethicsScore,
+      performers: secureSave.performers,
+      relationships: secureSave.relationships || {},
+      storyFlags: secureSave.storyFlags || {},
+      completedEvents: secureSave.completedEvents || [],
+      upgrades: secureSave.upgrades,
+      cityDemand: secureSave.cityDemand,
+      genreTrend: secureSave.genreTrend,
+      riskLevel: secureSave.riskLevel as "conservative" | "standard" | "bold",
+      eventCooldowns: secureSave.eventCooldowns,
+      eventHistory: secureSave.eventHistory,
+      lastEventDay: secureSave.lastEventDay,
+      ownedClothing: secureSave.ownedClothing || [],
+      crowdMood: secureSave.crowdMood || {},
+      seasonalTrends: secureSave.seasonalTrends || [],
+      viralTrends: secureSave.viralTrends || [],
+      activeRumors: secureSave.activeRumors || [],
+      dramaLevel: secureSave.dramaLevel || 0,
+      stageProps: secureSave.stageProps || [],
+      activeEffects: secureSave.activeEffects || [],
+      maintenanceCost: secureSave.maintenanceCost || 0,
+      rivalClubs: secureSave.rivalClubs || [],
+      fame: secureSave.fame || 0,
+      camShowBranch: secureSave.camShowBranch || false,
+      vipWebsite: secureSave.vipWebsite || false,
+      managedTroupes: secureSave.managedTroupes || [],
+      availableCards: secureSave.availableCards || [],
+      usedCardsThisNight: secureSave.usedCardsThisNight || [],
+      vipRooms: secureSave.vipRooms || [],
+      ownedFetishItems: secureSave.ownedFetishItems || [],
+      activePatronRequests: secureSave.activePatronRequests || [],
+      adultContentLevel: secureSave.adultContentLevel || 50,
+      brothelRooms: secureSave.brothelRooms || [],
+      brothelWorkers: secureSave.brothelWorkers || [],
+      brothelSessions: secureSave.brothelSessions || [],
+      brothelReputation: secureSave.brothelReputation || 50,
+      brothelEnabled: secureSave.brothelEnabled || false,
+    };
+
+    // Check for time manipulation
+    if (detectTimeManipulation(gameState)) {
+      console.warn('Time manipulation detected, sanitizing game state');
+      gameState = sanitizeGameState(gameState);
+    }
+
+    // Ensure backward compatibility
+    gameState = ensureBackwardCompatibility(gameState);
+
+    return gameState;
+  } catch (error) {
+    console.error('Failed to load game:', error);
+    return null;
+  }
+}
+
+/**
+ * Delete saved game from localStorage
+ */
+export function deleteSave(): void {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('clubManagerSave');
+  }
+}
+
+/**
+ * Ensure backward compatibility with older save formats
+ */
+function ensureBackwardCompatibility(state: GameState): GameState {
+  const updated = { ...state };
+
+  // Ensure new fields exist
+  if (!updated.ownedClothing) {
+    updated.ownedClothing = [];
+  }
+
+  if (!updated.eventCooldowns) {
+    updated.eventCooldowns = {};
+  }
+
+  if (!updated.eventHistory) {
+    updated.eventHistory = [];
+  }
+
+  if (updated.lastEventDay === undefined) {
+    updated.lastEventDay = 0;
+  }
+
+  // Ensure all performers have required fields
+  updated.performers = updated.performers.map(performer => {
+    const p = { ...performer };
+    
+    if (!p.wardrobe) {
+      p.wardrobe = {
+        top: null,
+        bottom: null,
+        shoes: null,
+        accessory: null,
+      };
+    }
+
+    if (p.tipsEarned === undefined) {
+      p.tipsEarned = 0;
+    }
+
+    return p;
+  });
+
+  return updated;
 }
