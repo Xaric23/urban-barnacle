@@ -8,15 +8,13 @@ import ManagePerformers from '@/components/ManagePerformers';
 import RunClubNight from '@/components/RunClubNight';
 import ViewStats from '@/components/ViewStats';
 import UpgradeShop from '@/components/UpgradeShop';
-import LoadingScreen from '@/components/LoadingScreen';
 import DramaManager from '@/components/DramaManager';
 import StageCustomizer from '@/components/StageCustomizer';
 import ExpansionDashboard from '@/components/ExpansionDashboard';
 import CrowdMoodDashboard from '@/components/CrowdMoodDashboard';
 import BrothelManager from '@/components/BrothelManager';
 import { GameState } from '@/lib/types';
-import { createInitialGameState, advanceDay, updateChemistryForAllPerformers, updateCrowdMood, applySeasonalTrends, checkForViralTrend, generateRumor, checkForSabotage, calculateExpansionIncome, checkForCelebrityCameo } from '@/lib/gameLogic';
-import { bootstrapGame, saveToStorage, deleteSave, BootstrapState, BootstrapStatus } from '@/lib/bootstrap';
+import { createInitialGameState, advanceDay, updateChemistryForAllPerformers, updateCrowdMood, applySeasonalTrends, checkForViralTrend, generateRumor, checkForSabotage, calculateExpansionIncome, checkForCelebrityCameo, loadGame, saveGame, deleteSave } from '@/lib/gameLogic';
 
 type GameView = 'menu' | 'recruit' | 'manage' | 'run' | 'stats' | 'upgrades' | 'drama' | 'stage' | 'expansions' | 'trends' | 'brothel';
 
@@ -24,43 +22,28 @@ export default function Home() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [currentView, setCurrentView] = useState<GameView>('menu');
   const [showWelcome, setShowWelcome] = useState(true);
-  const [bootstrapState, setBootstrapState] = useState<BootstrapState>({
-    status: BootstrapStatus.INITIALIZING,
-    progress: 0,
-    message: 'Starting...',
-    warnings: [],
-  });
-  const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Bootstrap the game on mount
-    const initGame = async () => {
+    // Load game on mount
+    const initGame = () => {
       try {
-        const result = await bootstrapGame(setBootstrapState);
+        const loadedState = loadGame();
         
-        if (result.success) {
-          setGameState(result.gameState);
-          setShowWelcome(result.isNewGame);
-          
-          // Show warnings if any
-          if (result.warnings.length > 0) {
-            setTimeout(() => {
-              alert('⚠️ Warnings:\n' + result.warnings.join('\n'));
-            }, 500);
-          }
+        if (loadedState) {
+          setGameState(loadedState);
+          setShowWelcome(false);
         } else {
-          alert('Failed to load game: ' + result.error);
+          // No save found or invalid save, create new game
           setGameState(createInitialGameState());
+          setShowWelcome(true);
         }
       } catch (error) {
-        console.error('Bootstrap error:', error);
-        alert('Error loading game: ' + (error instanceof Error ? error.message : 'Unknown error'));
+        console.error('Error loading game:', error);
         setGameState(createInitialGameState());
+        setShowWelcome(true);
       } finally {
-        // Always hide loading screen, even if there's an error
-        setTimeout(() => {
-          setIsBootstrapping(false);
-        }, 800);
+        setIsLoading(false);
       }
     };
 
@@ -69,10 +52,10 @@ export default function Home() {
 
   useEffect(() => {
     // Auto-save game state changes
-    if (gameState && !isBootstrapping) {
-      saveToStorage(gameState);
+    if (gameState && !isLoading) {
+      saveGame(gameState);
     }
-  }, [gameState, isBootstrapping]);
+  }, [gameState, isLoading]);
 
   const handleAdvanceDay = () => {
     if (gameState) {
@@ -148,12 +131,8 @@ export default function Home() {
     }
   };
 
-  // Show loading screen during bootstrap
-  if (isBootstrapping) {
-    return <LoadingScreen bootstrapState={bootstrapState} />;
-  }
-
-  if (!gameState) {
+  // Show loading screen during initial load
+  if (isLoading || !gameState) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-gray-900 to-black flex items-center justify-center">
         <div className="text-white text-2xl">Loading...</div>
