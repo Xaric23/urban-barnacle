@@ -10,12 +10,16 @@ As of February 2026, this repository has accumulated **44 unnecessary branches**
 - 38 merged branches from completed PRs
 - 6 closed (not merged) branches
 
-**See the [CLEANUP_GUIDE.md](./CLEANUP_GUIDE.md) for detailed instructions on removing these branches.**
+**Update (February 10, 2026):** The branch cleanup workflow has been fixed to:
+- ✅ Properly check remote branches using correct git syntax
+- ✅ Check GitHub's branch protection API before attempting deletion
+- ✅ Provide clear feedback with counters (deleted, protected, skipped)
+- ✅ Handle HTTP 422 errors gracefully
 
-All branches are currently protected, preventing automatic deletion. Manual intervention is required to:
+**Important:** All branches are currently protected in GitHub settings. To allow the workflow to delete merged branches:
 1. Review the list of branches to delete (see [BRANCHES_TO_DELETE.md](./BRANCHES_TO_DELETE.md))
-2. Remove branch protection for stale branches
-3. Execute the deletion script or manually delete via GitHub UI
+2. Remove branch protection for stale branches in **Settings** → **Branches**
+3. Run the cleanup workflow manually or wait for the weekly schedule
 
 ## Protected Branches
 
@@ -170,10 +174,14 @@ git push origin <commit-sha>:refs/heads/branch-name
 
 If a merged branch isn't being deleted:
 
-1. **Check if it's protected** - Review the protected branches list
-2. **Verify it's merged** - Ensure the PR was actually merged (not just closed)
-3. **Check branch protection** - The branch might have protection rules
+1. **Check if it's protected in GitHub** - The workflow now checks GitHub's branch protection API
+   - Go to **Settings** → **Branches** → **Branch protection rules**
+   - Protected branches will show `⚠️ Branch X is protected in GitHub - skipping` in the logs
+2. **Check if it's in the protected list** - Review the protected branches list (main, master, develop, staging, production)
+3. **Verify it's merged** - Ensure the PR was actually merged (not just closed)
 4. **Review workflow logs** - Look for error messages in the Actions tab
+   - The workflow now shows detailed counters: Deleted, Protected, Skipped
+   - HTTP 422 errors indicate branch protection or other restrictions
 
 ### Workflow Permissions
 
