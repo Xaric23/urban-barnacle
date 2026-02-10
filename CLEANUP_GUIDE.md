@@ -2,6 +2,12 @@
 
 This guide explains how to clean up unnecessary branches in the repository.
 
+## 🚀 Quick Start
+
+**New to this?** Start with the [CLEANUP_CHECKLIST.md](./CLEANUP_CHECKLIST.md) for a step-by-step checklist format.
+
+**Want details?** Continue reading this guide for comprehensive instructions.
+
 ## Quick Start
 
 ### Option 1: Manual Cleanup via GitHub UI
