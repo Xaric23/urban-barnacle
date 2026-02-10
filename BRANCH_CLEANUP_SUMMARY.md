@@ -92,7 +92,7 @@ bash scripts/delete_unnecessary_branches.sh
   - Uses GitHub API with proper error handling (HTTP 204 check)
   - Provides detailed logs in GitHub Actions
 
-### 3. Branch Management Documentation (UPDATED)
+### 4. Branch Management Documentation (UPDATED)
 
 **File:** `BRANCH_MANAGEMENT.md` (UPDATED)
 - Added current cleanup status section
@@ -100,13 +100,7 @@ bash scripts/delete_unnecessary_branches.sh
 - Links to cleanup scripts and guides
 - Updated with current branch count (48 total, 44 to delete)
 
-### 4. Existing Automation
-
-**File:** `.github/workflows/cleanup-branches.yml` (ALREADY EXISTS)
-- Runs after PR close/merge
-- Weekly Sunday execution
-- Manual trigger available
-- **Note**: Currently blocked by branch protection on all branches
+### 5. Other Existing Tools
 
 **Files:** `scripts/analyze-branches.sh` and `scripts/cleanup-merged-branches.sh` (ALREADY EXIST)
 - Existing branch analysis tools

@@ -110,16 +110,18 @@ for branch in "${ALL_BRANCHES[@]}"; do
         echo "[DRY RUN]"
         DELETED_COUNT=$((DELETED_COUNT + 1))
     else
-        # Try to delete the branch
-        if git push origin --delete "$branch" 2>&1 | grep -q "protected"; then
-            echo "FAILED (protected)"
-            PROTECTED_COUNT=$((PROTECTED_COUNT + 1))
-        elif git push origin --delete "$branch" 2>&1 | grep -q "error"; then
-            echo "FAILED"
-            FAILED_COUNT=$((FAILED_COUNT + 1))
-        else
+        # Try to delete the branch once, then inspect the result
+        if output=$(git push origin --delete "$branch" 2>&1); then
             echo "OK"
             DELETED_COUNT=$((DELETED_COUNT + 1))
+        else
+            if grep -qi "protected" <<< "$output"; then
+                echo "FAILED (protected)"
+                PROTECTED_COUNT=$((PROTECTED_COUNT + 1))
+            else
+                echo "FAILED"
+                FAILED_COUNT=$((FAILED_COUNT + 1))
+            fi
         fi
     fi
 done
@@ -129,7 +131,12 @@ echo "========================================"
 echo "Summary"
 echo "========================================"
 echo "Total branches processed: ${#ALL_BRANCHES[@]}"
-echo "Successfully deleted: $DELETED_COUNT"
+
+if [[ "$DRY_RUN" == true ]]; then
+    echo "Would delete: $DELETED_COUNT"
+else
+    echo "Successfully deleted: $DELETED_COUNT"
+fi
 
 if [[ $PROTECTED_COUNT -gt 0 ]]; then
     echo "Protected (not deleted): $PROTECTED_COUNT"
