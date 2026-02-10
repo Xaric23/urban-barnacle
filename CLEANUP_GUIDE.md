@@ -8,7 +8,7 @@ This guide explains how to clean up unnecessary branches in the repository.
 
 **Want details?** Continue reading this guide for comprehensive instructions.
 
-## Quick Start
+## Cleanup Options
 
 ### Option 1: Manual Cleanup via GitHub UI
 
