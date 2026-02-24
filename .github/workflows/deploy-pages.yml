@@ -36,6 +36,8 @@ jobs:
     
     - name: Build Next.js app
       run: npm run build
+      env:
+        NEXT_PUBLIC_DEPLOY_TARGET: github-pages
     
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v4
