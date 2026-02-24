@@ -569,7 +569,7 @@ When modifying save format:
 ### Critical Constants
 - Save salt: `"v1|NightclubGameSalt|DoNotModify"` in `antiCheat.ts`
 - localStorage key: `'club_save'` in game code
-- Default starting money: $5,000
+- Default starting money: $10,000
 - Reputation/ethics range: 0-100
 - Performer stat ranges: Various (see `types.ts`)
 
