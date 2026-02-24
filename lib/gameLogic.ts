@@ -13,7 +13,7 @@ import {
 export function createInitialGameState(): GameState {
   return {
     day: 1,
-    money: 5000,
+    money: 10000,
     reputation: 50,
     ethicsScore: 50,
     performers: [],
